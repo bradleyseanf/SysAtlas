@@ -31,7 +31,7 @@ const baseNavigationItems: NavigationItem[] = [
 export function AppShell() {
   const location = useLocation();
   const { session, signOut } = useAuth();
-  const { devModeQueryValue, isDevMode, setDevMode, withDevMode } = useDevModeUrlState();
+  const { isDevMode, setDevMode, withDevMode } = useDevModeUrlState();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   useEffect(() => {
@@ -168,7 +168,6 @@ export function AppShell() {
                         <div>
                           <p className="text-atlas-accent-soft text-[0.72rem] font-semibold uppercase tracking-[0.18em]">Test Mode</p>
                           <p className="mt-1 text-sm font-medium text-atlas">{isDevMode ? "Enabled" : "Disabled"}</p>
-                          <p className="mt-1 text-xs text-atlas-muted">dev_mode={devModeQueryValue ?? "false"}</p>
                         </div>
                         <button
                           type="button"
