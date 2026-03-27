@@ -5,7 +5,9 @@ import { EmptyState } from "../../components/EmptyState";
 import { StatCard } from "../../components/StatCard";
 import { StatusBadge } from "../../components/StatusBadge";
 import { api } from "../../lib/api";
+import { hasPermission, settingsRoutePermissions } from "../../lib/access";
 import { formatDateTime } from "../../lib/formatters";
+import { useAuth } from "../auth/AuthContext";
 
 function complianceTone(status: string) {
   if (status === "compliant") {
@@ -21,24 +23,28 @@ function complianceTone(status: string) {
 
 export function DevicesPage() {
   const navigate = useNavigate();
+  const { session } = useAuth();
   const devicesQuery = useQuery({
     queryKey: ["devices"],
     queryFn: api.getDevices,
   });
 
   const data = devicesQuery.data;
+  const canManageIntegrations = session ? hasPermission(session.user, settingsRoutePermissions.integrations) : false;
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={() => navigate("/integrations?module=devices")}
-          className="atlas-primary-button rounded-2xl px-4 py-2.5 text-sm font-semibold"
-        >
-          Integrate Now
-        </button>
-      </div>
+      {canManageIntegrations ? (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => navigate("/settings/integrations?module=devices")}
+            className="atlas-primary-button rounded-2xl px-4 py-2.5 text-sm font-semibold"
+          >
+            Integrate Now
+          </button>
+        </div>
+      ) : null}
 
       {devicesQuery.isLoading ? (
         <section className="atlas-panel rounded-[28px] px-5 py-12 text-center text-sm text-atlas-muted">
@@ -61,8 +67,8 @@ export function DevicesPage() {
             <EmptyState
               title={data.source_status.has_configured_source ? "No synced devices yet" : "No integration setup yet"}
               description={data.source_status.empty_state_message}
-              actionLabel="Integrate Now"
-              onAction={() => navigate("/integrations?module=devices")}
+              actionLabel={canManageIntegrations ? "Integrate Now" : "Refresh"}
+              onAction={() => (canManageIntegrations ? navigate("/settings/integrations?module=devices") : void devicesQuery.refetch())}
             />
           ) : (
             <section className="atlas-panel overflow-hidden rounded-[28px]">

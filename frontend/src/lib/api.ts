@@ -1,4 +1,9 @@
 import type {
+  AccessControlResponse,
+  AccessProfileMutationResponse,
+  AccessProfileUpsertPayload,
+  AccessUserMutationResponse,
+  AccessUserUpsertPayload,
   AuthResponse,
   AuthSessionResponse,
   DeviceListResponse,
@@ -6,6 +11,7 @@ import type {
   IntegrationListResponse,
   IntegrationMutationResponse,
   IntegrationUpsertPayload,
+  LibraryListResponse,
   SetupStatus,
   UserListResponse,
 } from "../types/api";
@@ -56,12 +62,24 @@ export const api = {
     apiRequest<void>("/auth/logout", {
       method: "POST",
     }),
+  getLibraries: () => apiRequest<LibraryListResponse>("/libraries"),
   getUsers: () => apiRequest<UserListResponse>("/users"),
   getDevices: () => apiRequest<DeviceListResponse>("/devices"),
   getIntegrationCatalog: () => apiRequest<IntegrationCatalogResponse>("/integrations/catalog"),
   getIntegrations: () => apiRequest<IntegrationListResponse>("/integrations"),
   saveIntegration: (payload: IntegrationUpsertPayload) =>
     apiRequest<IntegrationMutationResponse>("/integrations", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  getAccessControl: () => apiRequest<AccessControlResponse>("/settings/access-control"),
+  saveAccessProfile: (payload: AccessProfileUpsertPayload) =>
+    apiRequest<AccessProfileMutationResponse>("/settings/profiles", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  saveAccessUser: (payload: AccessUserUpsertPayload) =>
+    apiRequest<AccessUserMutationResponse>("/settings/access-users", {
       method: "POST",
       body: JSON.stringify(payload),
     }),

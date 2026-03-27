@@ -1,6 +1,6 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { ExternalLink, Search } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 import { StatusBadge } from "../../components/StatusBadge";
@@ -11,27 +11,42 @@ import { IntegrationLogo } from "./integrationLogos";
 
 type ModuleFilter = "all" | "users" | "devices";
 
-type FormState = {
-  tenant_label: string;
-  config: Record<string, string>;
-};
-
 const filterOptions: Array<{ id: ModuleFilter; label: string }> = [
   { id: "all", label: "All Integrations" },
   { id: "users", label: "User Sources" },
   { id: "devices", label: "Device Sources" },
 ];
 
-function buildFormState(provider: IntegrationProvider, connection: IntegrationConnection | undefined): FormState {
-  const configEntries = provider.fields.reduce<Record<string, string>>((result, field) => {
-    result[field.key] = field.secret ? "" : connection?.config_preview[field.key] ?? "";
-    return result;
-  }, {});
+function connectionTone(status: string) {
+  if (status === "configured" || status === "connected") {
+    return "positive" as const;
+  }
+  if (status === "authorization_pending") {
+    return "warning" as const;
+  }
+  return "neutral" as const;
+}
 
-  return {
-    tenant_label: connection?.tenant_label ?? "",
-    config: configEntries,
-  };
+function connectionLabel(status: string) {
+  if (status === "authorization_pending") {
+    return "Session Staged";
+  }
+  if (status === "configured") {
+    return "Connected";
+  }
+  return humanizeKey(status);
+}
+
+function defaultConnectionLabel(providerName: string) {
+  return `${providerName} Workspace`;
+}
+
+function popupFeatures() {
+  const width = 720;
+  const height = 760;
+  const left = Math.max(0, Math.round((window.screen.width - width) / 2));
+  const top = Math.max(0, Math.round((window.screen.height - height) / 2));
+  return `popup=yes,width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`;
 }
 
 export function IntegrationsPage() {
@@ -39,8 +54,9 @@ export function IntegrationsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedProviderId, setSelectedProviderId] = useState("");
   const [providerSearch, setProviderSearch] = useState("");
-  const [formState, setFormState] = useState<FormState>({ tenant_label: "", config: {} });
   const [notice, setNotice] = useState("");
+  const [launchReadyProviders, setLaunchReadyProviders] = useState<Record<string, boolean>>({});
+  const launchWatchersRef = useRef<Record<string, number>>({});
 
   const moduleFilter = (searchParams.get("module") as ModuleFilter | null) ?? "all";
 
@@ -53,6 +69,25 @@ export function IntegrationsPage() {
     queryKey: ["integrations", "connections"],
     queryFn: api.getIntegrations,
   });
+
+  const saveMutation = useMutation({
+    mutationFn: api.saveIntegration,
+    onSuccess: async (response) => {
+      setNotice(response.message);
+      await queryClient.invalidateQueries({ queryKey: ["integrations"] });
+      await queryClient.invalidateQueries({ queryKey: ["users"] });
+      await queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
+    onError: (mutationError) => {
+      setNotice(mutationError instanceof Error ? mutationError.message : "Unable to save the integration.");
+    },
+  });
+
+  useEffect(() => {
+    return () => {
+      Object.values(launchWatchersRef.current).forEach((watcher) => window.clearInterval(watcher));
+    };
+  }, []);
 
   const configuredConnections = connectionsQuery.data?.items ?? [];
   const configuredConnectionMap = new Map(configuredConnections.map((item) => [item.provider, item]));
@@ -82,6 +117,7 @@ export function IntegrationsPage() {
         provider.category,
         provider.description,
         humanizeKey(provider.auth_strategy),
+        humanizeKey(provider.setup_mode),
         provider.supported_modules.map(humanizeKey).join(" "),
         connection?.tenant_label ?? "",
       ]
@@ -116,30 +152,6 @@ export function IntegrationsPage() {
   const selectedProvider = activeProviderRow?.provider;
   const selectedConnection = activeProviderRow?.connection;
 
-  useEffect(() => {
-    if (!selectedProvider) {
-      return;
-    }
-    setFormState(buildFormState(selectedProvider, selectedConnection));
-  }, [selectedConnection, selectedProvider]);
-
-  useEffect(() => {
-    setNotice("");
-  }, [selectedProviderId]);
-
-  const saveMutation = useMutation({
-    mutationFn: api.saveIntegration,
-    onSuccess: (response) => {
-      setNotice(response.message);
-      void queryClient.invalidateQueries({ queryKey: ["integrations"] });
-      void queryClient.invalidateQueries({ queryKey: ["users"] });
-      void queryClient.invalidateQueries({ queryKey: ["devices"] });
-    },
-    onError: (mutationError) => {
-      setNotice(mutationError instanceof Error ? mutationError.message : "Unable to save the integration.");
-    },
-  });
-
   function handleFilterChange(nextFilter: ModuleFilter) {
     if (nextFilter === "all") {
       setSearchParams({});
@@ -149,47 +161,61 @@ export function IntegrationsPage() {
     setSearchParams({ module: nextFilter });
   }
 
-  function handleTenantLabelChange(event: ChangeEvent<HTMLInputElement>) {
-    const { value } = event.target;
-    setFormState((current) => ({ ...current, tenant_label: value }));
-  }
-
-  function handleFieldChange(fieldKey: string, value: string) {
-    setFormState((current) => ({
-      ...current,
-      config: {
-        ...current.config,
-        [fieldKey]: value,
-      },
-    }));
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selectedProvider) {
-      return;
-    }
-
-    setNotice("");
+  function stageProviderConnection(
+    provider: IntegrationProvider,
+    status: "authorization_pending" | "configured",
+    connection?: IntegrationConnection
+  ) {
     saveMutation.mutate({
-      provider: selectedProvider.id,
-      tenant_label: formState.tenant_label,
-      config: formState.config,
-      status: "configured",
+      provider: provider.id,
+      tenant_label: connection?.tenant_label ?? defaultConnectionLabel(provider.name),
+      config: {},
+      status,
     });
   }
 
-  function handleProviderRowKeyDown(event: KeyboardEvent<HTMLTableRowElement>, providerId: string) {
-    if (event.key !== "Enter" && event.key !== " ") {
+  function handleLaunch(provider: IntegrationProvider, connection: IntegrationConnection | undefined) {
+    const popup = window.open(provider.launch_url, `sysatlas-${provider.id}`, popupFeatures());
+    if (!popup) {
+      setNotice(`Allow pop-ups to launch the ${provider.name} session.`);
       return;
     }
 
-    event.preventDefault();
-    setSelectedProviderId(providerId);
+    popup.focus();
+    setNotice(`${provider.name} opened in a secure provider session. Finish the sign-in there, then return here.`);
+    setLaunchReadyProviders((current) => ({ ...current, [provider.id]: false }));
+
+    if (!connection) {
+      stageProviderConnection(provider, "authorization_pending", connection);
+    }
+
+    const existingWatcher = launchWatchersRef.current[provider.id];
+    if (existingWatcher) {
+      window.clearInterval(existingWatcher);
+    }
+
+    launchWatchersRef.current[provider.id] = window.setInterval(() => {
+      if (!popup.closed) {
+        return;
+      }
+
+      const watcher = launchWatchersRef.current[provider.id];
+      if (watcher) {
+        window.clearInterval(watcher);
+        delete launchWatchersRef.current[provider.id];
+      }
+
+      setLaunchReadyProviders((current) => ({ ...current, [provider.id]: true }));
+      setNotice(`${provider.name} session closed. If the provider granted access, complete the connection below.`);
+    }, 500);
   }
 
   return (
     <div className="space-y-6">
+      <section className="atlas-note rounded-[28px] p-5 text-sm leading-7">
+        Integrations launch in provider-hosted browser sessions. SysAtlas stages the handoff here, but it does not ask for raw credentials in embedded form fields.
+      </section>
+
       <div className="flex flex-wrap gap-3">
         {filterOptions.map((option) => (
           <button
@@ -219,16 +245,19 @@ export function IntegrationsPage() {
         </section>
       ) : (
         <>
-          <section className="atlas-panel overflow-hidden rounded-[28px]">
+          <section className="atlas-panel overflow-hidden rounded-[30px]">
             <div className="flex items-center justify-between border-b border-[rgba(23,32,42,0.08)] px-6 py-4">
-              <p className="text-sm font-semibold text-atlas">Configured Connections</p>
+              <div>
+                <p className="text-sm font-semibold text-atlas">Linked Providers</p>
+                <p className="mt-1 text-sm text-atlas-muted">External sessions that have already been staged or connected.</p>
+              </div>
               <span className="atlas-pill rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]">
-                {configuredConnections.length} configured
+                {configuredConnections.length} linked
               </span>
             </div>
 
             {configuredConnections.length === 0 ? (
-              <div className="px-6 py-10 text-sm text-atlas-muted">No integrations configured yet.</div>
+              <div className="px-6 py-10 text-sm text-atlas-muted">No integrations staged or connected yet.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full border-collapse text-left">
@@ -237,7 +266,7 @@ export function IntegrationsPage() {
                       <th className="px-6 py-4">Provider</th>
                       <th className="px-6 py-4">Connection</th>
                       <th className="px-6 py-4">Modules</th>
-                      <th className="px-6 py-4">Configured Fields</th>
+                      <th className="px-6 py-4">Status</th>
                       <th className="px-6 py-4">Updated</th>
                     </tr>
                   </thead>
@@ -257,10 +286,10 @@ export function IntegrationsPage() {
                           <p className="font-medium text-atlas">{connection.tenant_label}</p>
                           <p className="mt-1 text-atlas-muted">{humanizeKey(connection.auth_strategy)}</p>
                         </td>
-                        <td className="px-6 py-4 text-atlas-muted">
-                          {connection.supported_modules.map(humanizeKey).join(", ")}
+                        <td className="px-6 py-4 text-atlas-muted">{connection.supported_modules.map(humanizeKey).join(", ")}</td>
+                        <td className="px-6 py-4">
+                          <StatusBadge label={connectionLabel(connection.status)} tone={connectionTone(connection.status)} />
                         </td>
-                        <td className="px-6 py-4">{connection.configured_fields.length}</td>
                         <td className="px-6 py-4">{formatDateTime(connection.updated_at)}</td>
                       </tr>
                     ))}
@@ -270,40 +299,41 @@ export function IntegrationsPage() {
             )}
           </section>
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(380px,0.95fr)]">
-            <section className="atlas-panel overflow-hidden rounded-[28px]">
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[rgba(23,32,42,0.08)] px-5 py-4">
-                <div>
-                  <p className="text-sm font-semibold text-atlas">Available Providers</p>
-                  <p className="mt-1 text-xs uppercase tracking-[0.16em] text-atlas-dim">
-                    {providerRows.length} shown
-                    {moduleFilter === "all" ? "" : ` in ${humanizeKey(moduleFilter)}`}
-                  </p>
-                </div>
-
-                <label className="relative w-full max-w-xs">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-atlas-dim" />
-                  <input
-                    className="atlas-field w-full rounded-2xl py-2.5 pl-10 pr-4 text-sm"
-                    value={providerSearch}
-                    onChange={(event) => setProviderSearch(event.target.value)}
-                    placeholder="Search integrations"
-                  />
-                </label>
+          <section className="atlas-panel overflow-hidden rounded-[30px]">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[rgba(23,32,42,0.08)] px-5 py-4">
+              <div>
+                <p className="text-sm font-semibold text-atlas">Available Providers</p>
+                <p className="mt-1 text-xs uppercase tracking-[0.16em] text-atlas-dim">
+                  {providerRows.length} shown
+                  {moduleFilter === "all" ? "" : ` in ${humanizeKey(moduleFilter)}`}
+                </p>
               </div>
 
-              {providerRows.length === 0 ? (
-                <div className="px-6 py-10 text-sm text-atlas-muted">No integrations match the current filter.</div>
-              ) : (
-                <div className="max-h-[620px] overflow-auto">
+              <label className="relative w-full max-w-xs">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-atlas-dim" />
+                <input
+                  className="atlas-field w-full rounded-2xl py-2.5 pl-10 pr-4 text-sm"
+                  value={providerSearch}
+                  onChange={(event) => setProviderSearch(event.target.value)}
+                  placeholder="Search integrations"
+                />
+              </label>
+            </div>
+
+            {providerRows.length === 0 ? (
+              <div className="px-6 py-10 text-sm text-atlas-muted">No integrations match the current filter.</div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
                   <table className="min-w-full table-fixed border-collapse text-left">
-                    <thead className="sticky top-0 z-10 bg-[rgba(255,252,248,0.98)] text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-atlas-dim">
+                    <thead className="atlas-table-head text-[0.7rem] font-semibold uppercase tracking-[0.18em]">
                       <tr>
-                        <th className="w-14 px-4 py-3">Sel</th>
-                        <th className="px-4 py-3">Integration</th>
-                        <th className="w-[8.5rem] px-4 py-3">Category</th>
-                        <th className="w-[10rem] px-4 py-3">Modules</th>
-                        <th className="w-[8rem] px-4 py-3">Status</th>
+                        <th className="w-[18rem] px-4 py-3">Integration</th>
+                        <th className="w-[10rem] px-4 py-3">Category</th>
+                        <th className="w-[12rem] px-4 py-3">Modules</th>
+                        <th className="w-[11rem] px-4 py-3">Setup</th>
+                        <th className="w-[10rem] px-4 py-3">Status</th>
+                        <th className="w-[10rem] px-4 py-3">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -313,51 +343,40 @@ export function IntegrationsPage() {
                         return (
                           <tr
                             key={provider.id}
-                            tabIndex={0}
-                            aria-selected={isSelected}
                             onClick={() => setSelectedProviderId(provider.id)}
-                            onKeyDown={(event) => handleProviderRowKeyDown(event, provider.id)}
-                            className={`group cursor-pointer border-t border-[rgba(23,32,42,0.06)] text-sm outline-none transition ${
-                              isSelected
-                                ? "bg-[rgba(201,74,99,0.06)] text-atlas"
-                                : "atlas-table-row hover:bg-[rgba(23,32,42,0.03)] focus-visible:bg-[rgba(23,32,42,0.04)]"
+                            className={`cursor-pointer border-t border-[rgba(23,32,42,0.06)] text-sm transition ${
+                              isSelected ? "bg-[rgba(201,74,99,0.06)]" : "atlas-table-row hover:bg-[rgba(23,32,42,0.03)]"
                             }`}
                           >
-                            <td className="px-4 py-4 align-top">
-                              <span
-                                className={`flex h-4 w-4 items-center justify-center rounded-[4px] border transition ${
-                                  isSelected
-                                    ? "border-[var(--atlas-accent)] bg-[var(--atlas-accent)]"
-                                    : "border-[rgba(23,32,42,0.12)] bg-[rgba(23,32,42,0.03)] group-hover:border-[rgba(23,32,42,0.22)]"
-                                }`}
-                              >
-                                {isSelected ? <span className="h-1.5 w-1.5 rounded-[2px] bg-white" /> : null}
-                              </span>
-                            </td>
-                            <td className="px-4 py-4 align-top">
+                            <td className="px-4 py-4">
                               <div className="flex items-start gap-3">
                                 <IntegrationLogo providerId={provider.id} providerName={provider.name} size="sm" />
                                 <div className="min-w-0">
                                   <p className="truncate font-semibold text-atlas">{provider.name}</p>
-                                  <p className="mt-1 truncate text-xs text-atlas-dim">
-                                    {connection?.tenant_label ?? provider.description}
-                                  </p>
+                                  <p className="mt-1 truncate text-xs text-atlas-dim">{provider.description}</p>
                                 </div>
                               </div>
                             </td>
-                            <td className="px-4 py-4 align-top text-atlas-muted">{provider.category}</td>
-                            <td className="px-4 py-4 align-top text-atlas-muted">
-                              {provider.supported_modules.map(humanizeKey).join(", ")}
+                            <td className="px-4 py-4 text-atlas-muted">{provider.category}</td>
+                            <td className="px-4 py-4 text-atlas-muted">{provider.supported_modules.map(humanizeKey).join(", ")}</td>
+                            <td className="px-4 py-4 text-atlas-muted">{humanizeKey(provider.setup_mode)}</td>
+                            <td className="px-4 py-4">
+                              <StatusBadge
+                                label={connection ? connectionLabel(connection.status) : "Ready"}
+                                tone={connection ? connectionTone(connection.status) : "neutral"}
+                              />
                             </td>
-                            <td className="px-4 py-4 align-top">
-                              <span
-                                className={`inline-flex items-center gap-2 font-medium ${
-                                  connection ? "text-[var(--atlas-success-text)]" : "text-atlas-muted"
-                                }`}
+                            <td className="px-4 py-4">
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  handleLaunch(provider, connection);
+                                }}
+                                className="atlas-secondary-button rounded-2xl px-4 py-2 text-sm font-semibold"
                               >
-                                <span className={`h-2 w-2 rounded-full ${connection ? "bg-[#70d89b]" : "bg-[rgba(23,32,42,0.24)]"}`} />
-                                {connection ? "Configured" : "Ready"}
-                              </span>
+                                Launch
+                              </button>
                             </td>
                           </tr>
                         );
@@ -365,96 +384,120 @@ export function IntegrationsPage() {
                     </tbody>
                   </table>
                 </div>
-              )}
-            </section>
 
-            <section className="atlas-panel rounded-[28px] p-6">
-              {selectedProvider ? (
-                <>
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <IntegrationLogo providerId={selectedProvider.id} providerName={selectedProvider.name} size="lg" />
-                      <div>
-                        <p className="text-atlas-accent-soft text-[0.74rem] font-semibold uppercase tracking-[0.18em]">
-                          {selectedProvider.category}
-                        </p>
-                        <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-atlas">{selectedProvider.name}</h2>
-                        <p className="mt-3 max-w-3xl text-sm leading-7 text-atlas-muted">{selectedProvider.description}</p>
-                        <p className="mt-3 text-xs uppercase tracking-[0.18em] text-atlas-dim">
-                          Auth Strategy: {humanizeKey(selectedProvider.auth_strategy)}
-                        </p>
+                {selectedProvider ? (
+                  <div className="border-t border-[rgba(23,32,42,0.08)] px-6 py-6">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div className="flex items-start gap-4">
+                        <IntegrationLogo providerId={selectedProvider.id} providerName={selectedProvider.name} size="lg" />
+                        <div>
+                          <p className="text-atlas-accent-soft text-[0.74rem] font-semibold uppercase tracking-[0.18em]">
+                            {selectedProvider.category}
+                          </p>
+                          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-atlas">{selectedProvider.name}</h2>
+                          <p className="mt-3 max-w-3xl text-sm leading-7 text-atlas-muted">{selectedProvider.description}</p>
+                          <p className="mt-3 text-xs uppercase tracking-[0.18em] text-atlas-dim">
+                            Auth Strategy: {humanizeKey(selectedProvider.auth_strategy)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {selectedProvider.supported_modules.map((moduleName) => (
+                          <StatusBadge key={moduleName} label={moduleName} tone="info" />
+                        ))}
+                        <StatusBadge
+                          label={selectedConnection ? connectionLabel(selectedConnection.status) : "Ready"}
+                          tone={selectedConnection ? connectionTone(selectedConnection.status) : "neutral"}
+                        />
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedProvider.supported_modules.map((moduleName) => (
-                        <StatusBadge key={moduleName} label={moduleName} tone="info" />
-                      ))}
+
+                    {notice ? <div className="atlas-pill-accent mt-5 rounded-[24px] px-4 py-3 text-sm">{notice}</div> : null}
+
+                    <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
+                      <section className="atlas-panel-soft rounded-[28px] p-5">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-semibold text-atlas">Connection Flow</p>
+                          <span className="text-xs uppercase tracking-[0.16em] text-atlas-dim">{humanizeKey(selectedProvider.setup_mode)}</span>
+                        </div>
+
+                        <ol className="mt-4 space-y-3">
+                          {selectedProvider.setup_steps.map((step, index) => (
+                            <li key={step} className="flex items-start gap-3 rounded-2xl border border-[rgba(23,32,42,0.08)] bg-white/72 px-4 py-4">
+                              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[rgba(201,74,99,0.08)] text-sm font-semibold text-[var(--atlas-accent-text)]">
+                                {index + 1}
+                              </span>
+                              <span className="text-sm leading-6 text-atlas-soft">{step}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      </section>
+
+                      <section className="space-y-5">
+                        <section className="atlas-panel-soft rounded-[28px] p-5">
+                          <p className="text-sm font-semibold text-atlas">Security Notes</p>
+                          <div className="mt-4 space-y-3">
+                            {selectedProvider.security_notes.map((note) => (
+                              <div key={note} className="rounded-2xl border border-[rgba(23,32,42,0.08)] bg-white/72 px-4 py-4 text-sm leading-6 text-atlas-soft">
+                                {note}
+                              </div>
+                            ))}
+                          </div>
+                        </section>
+
+                        <section className="atlas-panel-soft rounded-[28px] p-5">
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <article>
+                              <p className="text-atlas-accent-soft text-[0.72rem] font-semibold uppercase tracking-[0.16em]">Connection Label</p>
+                              <p className="mt-2 text-sm font-medium text-atlas">
+                                {selectedConnection?.tenant_label ?? defaultConnectionLabel(selectedProvider.name)}
+                              </p>
+                            </article>
+                            <article>
+                              <p className="text-atlas-accent-soft text-[0.72rem] font-semibold uppercase tracking-[0.16em]">Last Updated</p>
+                              <p className="mt-2 text-sm font-medium text-atlas">{formatDateTime(selectedConnection?.updated_at ?? null)}</p>
+                            </article>
+                          </div>
+
+                          <div className="mt-5 flex flex-wrap gap-3">
+                            <button
+                              type="button"
+                              onClick={() => handleLaunch(selectedProvider, selectedConnection)}
+                              className="atlas-primary-button rounded-2xl px-5 py-3 text-sm font-semibold"
+                            >
+                              {selectedProvider.launch_button_label}
+                            </button>
+
+                            {selectedProvider.documentation_url ? (
+                              <button
+                                type="button"
+                                onClick={() => window.open(selectedProvider.documentation_url ?? "", "_blank", "noopener,noreferrer")}
+                                className="atlas-secondary-button inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                                Open Docs
+                              </button>
+                            ) : null}
+
+                            {launchReadyProviders[selectedProvider.id] || selectedConnection?.status === "authorization_pending" ? (
+                              <button
+                                type="button"
+                                onClick={() => stageProviderConnection(selectedProvider, "configured", selectedConnection)}
+                                className="atlas-secondary-button rounded-2xl px-5 py-3 text-sm font-semibold"
+                              >
+                                Complete Connection
+                              </button>
+                            ) : null}
+                          </div>
+                        </section>
+                      </section>
                     </div>
                   </div>
-
-                  {notice ? <div className="atlas-pill-accent mt-5 rounded-[24px] px-4 py-3 text-sm">{notice}</div> : null}
-
-                  <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
-                    <label className="block">
-                      <span className="mb-2 block text-sm font-medium text-atlas-soft">Connection Label</span>
-                      <input
-                        className="atlas-field w-full rounded-2xl px-4 py-3"
-                        value={formState.tenant_label}
-                        onChange={handleTenantLabelChange}
-                        placeholder={`${selectedProvider.name} - Production`}
-                        required
-                      />
-                    </label>
-
-                    <div className="grid gap-5 lg:grid-cols-2">
-                      {selectedProvider.fields.map((field) => {
-                        const secretConfigured = selectedConnection?.configured_secret_fields.includes(field.key) ?? false;
-                        const isTextArea = field.input_type === "textarea";
-
-                        return (
-                          <label key={field.key} className={`block ${isTextArea ? "lg:col-span-2" : ""}`}>
-                            <span className="mb-2 block text-sm font-medium text-atlas-soft">{field.label}</span>
-                            {isTextArea ? (
-                              <textarea
-                                className="atlas-field min-h-[120px] w-full rounded-2xl px-4 py-3"
-                                value={formState.config[field.key] ?? ""}
-                                onChange={(event) => handleFieldChange(field.key, event.target.value)}
-                                placeholder={field.placeholder ?? ""}
-                                required={field.required && !secretConfigured}
-                              />
-                            ) : (
-                              <input
-                                className="atlas-field w-full rounded-2xl px-4 py-3"
-                                type={field.input_type}
-                                value={formState.config[field.key] ?? ""}
-                                onChange={(event) => handleFieldChange(field.key, event.target.value)}
-                                placeholder={
-                                  field.secret && secretConfigured
-                                    ? "Saved securely. Enter a new value to replace it."
-                                    : field.placeholder ?? ""
-                                }
-                                required={field.required && !secretConfigured}
-                              />
-                            )}
-                          </label>
-                        );
-                      })}
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={saveMutation.isPending}
-                      className="atlas-primary-button rounded-2xl px-5 py-3 text-sm font-semibold"
-                    >
-                      {saveMutation.isPending ? "Saving Integration..." : selectedConnection ? "Update Integration" : "Save Integration"}
-                    </button>
-                  </form>
-                </>
-              ) : (
-                <div className="px-2 py-8 text-sm text-atlas-muted">No providers available for the selected filter.</div>
-              )}
-            </section>
-          </div>
+                ) : null}
+              </>
+            )}
+          </section>
         </>
       )}
     </div>

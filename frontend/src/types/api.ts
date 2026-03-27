@@ -12,6 +12,12 @@ export type AuthUser = {
   is_active: boolean;
   is_superuser: boolean;
   role: string;
+  profile: {
+    id: string;
+    name: string;
+    description: string | null;
+  } | null;
+  permissions: string[];
   created_at: string;
 };
 
@@ -42,6 +48,12 @@ export type IntegrationProvider = {
   auth_strategy: string;
   supported_modules: string[];
   fields: IntegrationField[];
+  setup_mode: string;
+  launch_url: string;
+  documentation_url: string | null;
+  launch_button_label: string;
+  setup_steps: string[];
+  security_notes: string[];
 };
 
 export type IntegrationConnection = {
@@ -73,6 +85,103 @@ export type IntegrationListResponse = {
 export type IntegrationMutationResponse = {
   message: string;
   item: IntegrationConnection;
+};
+
+export type LibraryNode = {
+  id: string;
+  name: string;
+  node_type: string;
+  path: string;
+  stage_status: string;
+  source: string;
+  staged_item_count: number;
+  security_profiles: string[];
+  owner: string | null;
+  notes: string | null;
+  last_synced_at: string | null;
+  children: LibraryNode[];
+};
+
+export type LibraryListResponse = {
+  items: LibraryNode[];
+  stats: {
+    total_sites: number;
+    staged_nodes: number;
+    secured_nodes: number;
+    referenced_profiles: number;
+  };
+};
+
+export type PermissionDefinition = {
+  key: string;
+  label: string;
+  description: string;
+  group: string;
+};
+
+export type AccessProfileSummary = {
+  id: string;
+  name: string;
+  description: string | null;
+};
+
+export type AccessProfile = {
+  id: string;
+  name: string;
+  description: string | null;
+  permissions: string[];
+  is_system_profile: boolean;
+  assigned_user_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AccessUser = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  display_name: string | null;
+  email: string;
+  is_active: boolean;
+  is_superuser: boolean;
+  profile: AccessProfileSummary | null;
+  permissions: string[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type AccessControlResponse = {
+  permissions: PermissionDefinition[];
+  profiles: AccessProfile[];
+  users: AccessUser[];
+};
+
+export type AccessProfileUpsertPayload = {
+  id?: string;
+  name: string;
+  description: string;
+  permissions: string[];
+};
+
+export type AccessProfileMutationResponse = {
+  message: string;
+  item: AccessProfile;
+};
+
+export type AccessUserUpsertPayload = {
+  id?: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  password?: string;
+  profile_id?: string | null;
+  is_active: boolean;
+  is_superuser: boolean;
+};
+
+export type AccessUserMutationResponse = {
+  message: string;
+  item: AccessUser;
 };
 
 export type IntegrationOption = {

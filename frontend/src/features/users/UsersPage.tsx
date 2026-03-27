@@ -5,7 +5,9 @@ import { EmptyState } from "../../components/EmptyState";
 import { StatCard } from "../../components/StatCard";
 import { StatusBadge } from "../../components/StatusBadge";
 import { api } from "../../lib/api";
+import { hasPermission, settingsRoutePermissions } from "../../lib/access";
 import { formatDateTime } from "../../lib/formatters";
+import { useAuth } from "../auth/AuthContext";
 
 function lifecycleTone(lifecycle: string) {
   if (lifecycle === "offboarding") {
@@ -29,24 +31,28 @@ function accountTone(status: string) {
 
 export function UsersPage() {
   const navigate = useNavigate();
+  const { session } = useAuth();
   const usersQuery = useQuery({
     queryKey: ["users"],
     queryFn: api.getUsers,
   });
 
   const data = usersQuery.data;
+  const canManageIntegrations = session ? hasPermission(session.user, settingsRoutePermissions.integrations) : false;
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={() => navigate("/integrations?module=users")}
-          className="atlas-primary-button rounded-2xl px-4 py-2.5 text-sm font-semibold"
-        >
-          Integrate Now
-        </button>
-      </div>
+      {canManageIntegrations ? (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => navigate("/settings/integrations?module=users")}
+            className="atlas-primary-button rounded-2xl px-4 py-2.5 text-sm font-semibold"
+          >
+            Integrate Now
+          </button>
+        </div>
+      ) : null}
 
       {usersQuery.isLoading ? (
         <section className="atlas-panel rounded-[28px] px-5 py-12 text-center text-sm text-atlas-muted">
@@ -69,8 +75,8 @@ export function UsersPage() {
             <EmptyState
               title={data.source_status.has_configured_source ? "No synced users yet" : "No integration setup yet"}
               description={data.source_status.empty_state_message}
-              actionLabel="Integrate Now"
-              onAction={() => navigate("/integrations?module=users")}
+              actionLabel={canManageIntegrations ? "Integrate Now" : "Refresh"}
+              onAction={() => (canManageIntegrations ? navigate("/settings/integrations?module=users") : void usersQuery.refetch())}
             />
           ) : (
             <section className="atlas-panel overflow-hidden rounded-[28px]">

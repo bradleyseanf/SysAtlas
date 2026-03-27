@@ -12,6 +12,7 @@ type AuthContextValue = {
   session: AuthSession | null;
   signIn: (response: AuthResponse) => void;
   signOut: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -19,6 +20,17 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isReady, setIsReady] = useState(false);
+
+  async function refreshSession() {
+    try {
+      const response = await api.getCurrentSession();
+      setSession({ user: response.user });
+    } catch {
+      setSession(null);
+    } finally {
+      setIsReady(true);
+    }
+  }
 
   useEffect(() => {
     let isActive = true;
@@ -65,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  return <AuthContext.Provider value={{ isReady, session, signIn, signOut }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ isReady, session, signIn, signOut, refreshSession }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

@@ -1,21 +1,23 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Computer, FolderCog, LogOut, Settings, Users } from "lucide-react";
+import { Computer, FolderTree, LogOut, Settings, Users } from "lucide-react";
 
+import { APP_NAME, APP_VERSION } from "../../lib/appMeta";
+import {
+  accessibleSettingsNavigation,
+  defaultSettingsRoute,
+  hasPermission,
+  moduleRoutePermissions,
+  pageTitleForPath,
+} from "../../lib/access";
 import { initialsForUser } from "../../lib/formatters";
 import { useAuth } from "../auth/AuthContext";
 
 const navigationItems = [
-  { to: "/users", label: "Users", icon: Users },
-  { to: "/devices", label: "Devices", icon: Computer },
-  { to: "/integrations", label: "Integrations", icon: FolderCog },
-];
-
-const routeTitles: Record<string, string> = {
-  "/users": "Users",
-  "/devices": "Devices",
-  "/integrations": "Integrations",
-};
+  { to: "/libraries", label: "Libraries", icon: FolderTree, permission: moduleRoutePermissions.libraries },
+  { to: "/users", label: "Users", icon: Users, permission: moduleRoutePermissions.users },
+  { to: "/devices", label: "Devices", icon: Computer, permission: moduleRoutePermissions.devices },
+] as const;
 
 export function AppShell() {
   const location = useLocation();
@@ -33,42 +35,50 @@ export function AppShell() {
     return null;
   }
 
-  const currentTitle = routeTitles[location.pathname] ?? "Workspace";
+  const currentTitle = pageTitleForPath(location.pathname);
   const fallbackName = `${session.user.first_name ?? ""} ${session.user.last_name ?? ""}`.trim();
   const displayName = (session.user.display_name ?? fallbackName) || session.user.email;
-
-  function handleOpenIntegrations() {
-    setIsSettingsOpen(false);
-    void navigate("/integrations");
-  }
+  const visibleNavigationItems = navigationItems.filter((item) => hasPermission(session.user, item.permission));
+  const visibleSettingsItems = accessibleSettingsNavigation(session.user);
+  const defaultSettingsPath = defaultSettingsRoute(session.user);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
       <div className="pointer-events-none absolute inset-0 grid-sheen opacity-[0.02]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(201,74,99,0.035),transparent_28%),linear-gradient(180deg,#fbf7f2_0%,#f7f3ed_100%)]" />
       <div className="relative grid min-h-screen lg:grid-cols-[280px_1fr]">
-        <aside className="border-r border-white/8 bg-[rgba(17,22,29,0.98)] px-6 py-7 text-white shadow-[8px_0_28px_rgba(12,16,21,0.12)] backdrop-blur-[18px]">
-          <nav className="space-y-2">
-            {navigationItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${
-                      isActive
-                        ? "border border-[rgba(201,74,99,0.24)] bg-[rgba(201,74,99,0.16)] text-white shadow-[0_10px_20px_rgba(201,74,99,0.12)]"
-                        : "text-white/72 hover:bg-white/6 hover:text-white"
-                    }`
-                  }
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </NavLink>
-              );
-            })}
-          </nav>
+        <aside className="flex min-h-screen flex-col justify-between border-r border-white/8 bg-[rgba(17,22,29,0.98)] px-6 py-7 text-white shadow-[8px_0_28px_rgba(12,16,21,0.12)] backdrop-blur-[18px]">
+          <div>
+            <div>
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.26em] text-white/42">Control Plane</p>
+              <h1 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-white">{APP_NAME}</h1>
+            </div>
+
+            <nav className="mt-10 space-y-2">
+              {visibleNavigationItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${
+                        isActive
+                          ? "border border-[rgba(201,74,99,0.24)] bg-[rgba(201,74,99,0.16)] text-white shadow-[0_10px_20px_rgba(201,74,99,0.12)]"
+                          : "text-white/72 hover:bg-white/6 hover:text-white"
+                      }`
+                    }
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </NavLink>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-white/38">{APP_VERSION}</div>
         </aside>
 
         <div className="relative flex min-h-screen flex-col">
@@ -80,17 +90,19 @@ export function AppShell() {
               </div>
 
               <div className="relative flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsSettingsOpen((current) => !current);
-                    setIsProfileOpen(false);
-                  }}
-                  className="atlas-secondary-button inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium"
-                >
-                  <Settings className="h-4 w-4" />
-                  Settings
-                </button>
+                {defaultSettingsPath ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSettingsOpen((current) => !current);
+                      setIsProfileOpen(false);
+                    }}
+                    className="atlas-secondary-button inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Settings
+                  </button>
+                ) : null}
 
                 <button
                   type="button"
@@ -105,20 +117,31 @@ export function AppShell() {
                   </span>
                   <span className="text-left">
                     <span className="block text-sm font-semibold">{displayName}</span>
-                    <span className="text-atlas-muted block text-xs">{session.user.is_superuser ? "Super Admin" : "Operator"}</span>
+                    <span className="text-atlas-muted block text-xs">
+                      {session.user.is_superuser ? "Super Admin" : session.user.profile?.name ?? "Operator"}
+                    </span>
                   </span>
                 </button>
 
                 {isSettingsOpen ? (
-                  <div className="atlas-panel-strong absolute right-[calc(100%+12px)] top-[calc(100%+10px)] w-[320px] rounded-[28px] p-5">
+                  <div className="atlas-panel-strong absolute right-[calc(100%+12px)] top-[calc(100%+10px)] w-[340px] rounded-[28px] p-5">
                     <p className="text-sm font-semibold text-atlas">Platform Settings</p>
-                    <button
-                      type="button"
-                      onClick={handleOpenIntegrations}
-                      className="atlas-primary-button mt-4 w-full rounded-2xl px-4 py-3 text-sm font-semibold"
-                    >
-                      Open Integrations
-                    </button>
+                    <div className="mt-4 space-y-3">
+                      {visibleSettingsItems.map((item) => (
+                        <button
+                          key={item.to}
+                          type="button"
+                          onClick={() => {
+                            setIsSettingsOpen(false);
+                            void navigate(item.to);
+                          }}
+                          className="w-full rounded-[24px] border border-[rgba(23,32,42,0.08)] bg-white/70 px-4 py-4 text-left transition hover:border-[rgba(201,74,99,0.18)] hover:bg-white"
+                        >
+                          <span className="block text-sm font-semibold text-atlas">{item.label}</span>
+                          <span className="mt-1 block text-sm leading-6 text-atlas-muted">{item.description}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 ) : null}
 
@@ -129,7 +152,7 @@ export function AppShell() {
                     <div className="atlas-note mt-4 grid gap-3 rounded-2xl p-4">
                       <div>
                         <p className="text-atlas-accent-soft text-[0.72rem] font-semibold uppercase tracking-[0.18em]">Role</p>
-                        <p className="mt-1 text-sm font-medium text-atlas">{session.user.is_superuser ? "Super Admin" : "Operator"}</p>
+                        <p className="mt-1 text-sm font-medium text-atlas">{session.user.is_superuser ? "Super Admin" : session.user.profile?.name ?? "Operator"}</p>
                       </div>
                       <div>
                         <p className="text-atlas-accent-soft text-[0.72rem] font-semibold uppercase tracking-[0.18em]">Status</p>

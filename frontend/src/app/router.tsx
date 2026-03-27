@@ -1,13 +1,35 @@
+import type { ReactNode } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "../lib/api";
+import { defaultAuthorizedRoute, defaultSettingsRoute, hasPermission, settingsRoutePermissions, moduleRoutePermissions } from "../lib/access";
 import { AccessPortal } from "../features/auth/AccessPortal";
 import { useAuth } from "../features/auth/AuthContext";
 import { AppShell } from "../features/layout/AppShell";
+import { LibrariesPage } from "../features/libraries/LibrariesPage";
+import { SettingsLayout } from "../features/settings/SettingsLayout";
+import { ProfilesPage } from "../features/settings/ProfilesPage";
+import { AccessUsersPage } from "../features/settings/AccessUsersPage";
 import { UsersPage } from "../features/users/UsersPage";
 import { DevicesPage } from "../features/devices/DevicesPage";
 import { IntegrationsPage } from "../features/integrations/IntegrationsPage";
+
+function RequirePermission({
+  allowed,
+  children,
+}: {
+  allowed: boolean;
+  children: ReactNode;
+}) {
+  const { session } = useAuth();
+
+  if (!session) {
+    return null;
+  }
+
+  return allowed ? children : <Navigate to={defaultAuthorizedRoute(session.user)} replace />;
+}
 
 export function AppRouter() {
   const { isReady, session } = useAuth();
@@ -34,14 +56,78 @@ export function AppRouter() {
     );
   }
 
+  const fallbackRoute = defaultAuthorizedRoute(session.user);
+  const fallbackSettingsRoute = defaultSettingsRoute(session.user) ?? fallbackRoute;
+
   return (
     <Routes>
       <Route element={<AppShell />}>
-        <Route index element={<Navigate to="/users" replace />} />
-        <Route path="/users" element={<UsersPage />} />
-        <Route path="/devices" element={<DevicesPage />} />
-        <Route path="/integrations" element={<IntegrationsPage />} />
-        <Route path="*" element={<Navigate to="/users" replace />} />
+        <Route index element={<Navigate to={fallbackRoute} replace />} />
+        <Route
+          path="/libraries"
+          element={
+            <RequirePermission allowed={hasPermission(session.user, moduleRoutePermissions.libraries)}>
+              <LibrariesPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="/users"
+          element={
+            <RequirePermission allowed={hasPermission(session.user, moduleRoutePermissions.users)}>
+              <UsersPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="/devices"
+          element={
+            <RequirePermission allowed={hasPermission(session.user, moduleRoutePermissions.devices)}>
+              <DevicesPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <RequirePermission
+              allowed={
+                hasPermission(session.user, settingsRoutePermissions.profiles) ||
+                hasPermission(session.user, settingsRoutePermissions.users) ||
+                hasPermission(session.user, settingsRoutePermissions.integrations)
+              }
+            >
+              <SettingsLayout />
+            </RequirePermission>
+          }
+        >
+          <Route index element={<Navigate to={fallbackSettingsRoute} replace />} />
+          <Route
+            path="profiles"
+            element={
+              <RequirePermission allowed={hasPermission(session.user, settingsRoutePermissions.profiles)}>
+                <ProfilesPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="users"
+            element={
+              <RequirePermission allowed={hasPermission(session.user, settingsRoutePermissions.users)}>
+                <AccessUsersPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="integrations"
+            element={
+              <RequirePermission allowed={hasPermission(session.user, settingsRoutePermissions.integrations)}>
+                <IntegrationsPage />
+              </RequirePermission>
+            }
+          />
+        </Route>
+        <Route path="*" element={<Navigate to={fallbackRoute} replace />} />
       </Route>
     </Routes>
   );
