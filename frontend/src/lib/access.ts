@@ -33,15 +33,6 @@ export const settingsNavigation = [
   },
 ] as const;
 
-const routePreference = [
-  "/libraries",
-  "/users",
-  "/devices",
-  "/settings/profiles",
-  "/settings/users",
-  "/settings/integrations",
-] as const;
-
 export function hasPermission(user: AuthUser, permission: string) {
   return user.is_superuser || user.permissions.includes(permission);
 }
@@ -55,31 +46,22 @@ export function defaultSettingsRoute(user: AuthUser) {
 }
 
 export function defaultAuthorizedRoute(user: AuthUser) {
-  for (const route of routePreference) {
-    if (route === "/libraries" && hasPermission(user, moduleRoutePermissions.libraries)) {
-      return route;
-    }
-    if (route === "/users" && hasPermission(user, moduleRoutePermissions.users)) {
-      return route;
-    }
-    if (route === "/devices" && hasPermission(user, moduleRoutePermissions.devices)) {
-      return route;
-    }
-    if (route === "/settings/profiles" && hasPermission(user, settingsRoutePermissions.profiles)) {
-      return route;
-    }
-    if (route === "/settings/users" && hasPermission(user, settingsRoutePermissions.users)) {
-      return route;
-    }
-    if (route === "/settings/integrations" && hasPermission(user, settingsRoutePermissions.integrations)) {
-      return route;
-    }
-  }
-
-  return "/libraries";
+  return "/home";
 }
 
 export function pageTitleForPath(pathname: string) {
+  if (pathname.startsWith("/settings/profiles")) {
+    return "Profiles";
+  }
+  if (pathname.startsWith("/settings/users")) {
+    return "Access Users";
+  }
+  if (pathname.startsWith("/settings/integrations")) {
+    return "Integrations";
+  }
+  if (pathname.startsWith("/home")) {
+    return "Home";
+  }
   if (pathname.startsWith("/libraries")) {
     return "Libraries";
   }
@@ -92,5 +74,5 @@ export function pageTitleForPath(pathname: string) {
   if (pathname.startsWith("/settings")) {
     return "Settings";
   }
-  return "Workspace";
+  return "Home";
 }

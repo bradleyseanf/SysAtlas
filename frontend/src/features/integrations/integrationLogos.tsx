@@ -116,6 +116,16 @@ const logoByBrand: Record<string, LogoDefinition> = {
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="4 8 55 48"><path fill="#28a8ea" d="M55.51 8H43.303a3.5 3.5 0 0 0-2.468 1.022L12.022 37.835A3.5 3.5 0 0 0 11 40.303V52.51A3.49 3.49 0 0 0 14.49 56h12.207a3.5 3.5 0 0 0 2.468-1.022l28.813-28.813A3.5 3.5 0 0 0 59 23.697V11.49A3.49 3.49 0 0 0 55.51 8"/><path fill="#0078d4" d="M55.51 56H43.303a3.5 3.5 0 0 1-2.468-1.022L35 49.143V38.24A6.24 6.24 0 0 1 41.24 32h10.903l5.835 5.835A3.5 3.5 0 0 1 59 40.303V52.51A3.49 3.49 0 0 1 55.51 56"/><path fill="#50d9ff" d="M14.49 8h12.207a3.5 3.5 0 0 1 2.468 1.022L35 14.857V25.76A6.24 6.24 0 0 1 28.76 32H17.857l-5.835-5.835A3.5 3.5 0 0 1 11 23.697V11.49A3.49 3.49 0 0 1 14.49 8"/><path d="M33 20.33v26.34a1.7 1.7 0 0 1-.04.4A2.314 2.314 0 0 1 30.67 49H11V18h19.67A2.326 2.326 0 0 1 33 20.33" opacity=".2"/><path d="M34 20.33v24.34A3.36 3.36 0 0 1 30.67 48H11V17h19.67A3.34 3.34 0 0 1 34 20.33" opacity=".1"/><path d="M33 20.33v24.34A2.326 2.326 0 0 1 30.67 47H11V18h19.67A2.326 2.326 0 0 1 33 20.33" opacity=".2"/><path d="M32 20.33v24.34A2.326 2.326 0 0 1 29.67 47H11V18h18.67A2.326 2.326 0 0 1 32 20.33" opacity=".1"/><rect width="28" height="28" x="4" y="18" fill="#0078d4" rx="2.333"/><path fill="#fff" d="M22.585 26.881h-6.547v3.829h6.145v2.454h-6.145v3.976h6.896v2.443h-9.868V24.417h9.52Z"/></svg>`,
     ),
   },
+  microsoftSharePoint: {
+    src: svgDataUrl(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="22" cy="22" r="14" fill="#0f766e"/><circle cx="43" cy="17" r="11" fill="#14b8a6"/><circle cx="45" cy="44" r="13" fill="#2dd4bf"/><rect x="19" y="18" width="25" height="30" rx="8" fill="#0f9f8d"/><path fill="#fff" d="M31.8 40.5c-6.2 0-10-3.4-10.5-8.8h6.2c.3 2.2 1.8 3.6 4.4 3.6 2.1 0 3.4-.8 3.4-2.2 0-1.4-1-1.9-4.8-2.8-5.6-1.3-8.7-3-8.7-8 0-4.9 4-8.1 9.9-8.1 6 0 9.8 3.2 10.2 8.5h-6.1c-.3-2-1.6-3.2-4-3.2-1.9 0-3 .8-3 2.1 0 1.3 1.1 1.8 4.6 2.6 5.9 1.4 9 3.2 9 8.1 0 5.1-4.1 8.2-10.6 8.2Z"/></svg>`,
+    ),
+  },
+  microsoftTeams: {
+    src: svgDataUrl(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="47" cy="19" r="9" fill="#818cf8"/><circle cx="52" cy="38" r="8" fill="#6366f1"/><rect x="13" y="14" width="32" height="36" rx="8" fill="#4f46e5"/><rect x="22" y="21" width="25" height="22" rx="6" fill="#4338ca"/><path fill="#fff" d="M18.5 24.5h20v5.4h-7v15.1h-6v-15h-7Z"/></svg>`,
+    ),
+  },
   verizon: {
     src: svgDataUrl(
       `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#CD040B" d="M18.302 0H22v.003L10.674 24H7.662L2 12h3.727l3.449 7.337z"/></svg>`,
@@ -139,6 +149,8 @@ const providerBrandMap: Record<string, keyof typeof logoByBrand> = {
   microsoft_365_admin_center: "microsoft365AdminCenter",
   microsoft_entra: "microsoftAzure",
   microsoft_exchange_admin_center: "microsoftExchange",
+  microsoft_sharepoint: "microsoftSharePoint",
+  microsoft_teams: "microsoftTeams",
   verizon_wireless: "verizon",
   zoho: "zoho",
   zoom: "zoom",

@@ -9,10 +9,11 @@ import { formatDateTime, humanizeKey } from "../../lib/formatters";
 import type { IntegrationConnection, IntegrationProvider } from "../../types/api";
 import { IntegrationLogo } from "./integrationLogos";
 
-type ModuleFilter = "all" | "users" | "devices";
+type ModuleFilter = "all" | "libraries" | "users" | "devices";
 
 const filterOptions: Array<{ id: ModuleFilter; label: string }> = [
   { id: "all", label: "All Integrations" },
+  { id: "libraries", label: "Library Sources" },
   { id: "users", label: "User Sources" },
   { id: "devices", label: "Device Sources" },
 ];

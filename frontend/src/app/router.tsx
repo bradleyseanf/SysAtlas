@@ -6,6 +6,7 @@ import { api } from "../lib/api";
 import { defaultAuthorizedRoute, defaultSettingsRoute, hasPermission, settingsRoutePermissions, moduleRoutePermissions } from "../lib/access";
 import { AccessPortal } from "../features/auth/AccessPortal";
 import { useAuth } from "../features/auth/AuthContext";
+import { HomePage } from "../features/home/HomePage";
 import { AppShell } from "../features/layout/AppShell";
 import { LibrariesPage } from "../features/libraries/LibrariesPage";
 import { SettingsLayout } from "../features/settings/SettingsLayout";
@@ -63,6 +64,7 @@ export function AppRouter() {
     <Routes>
       <Route element={<AppShell />}>
         <Route index element={<Navigate to={fallbackRoute} replace />} />
+        <Route path="/home" element={<HomePage />} />
         <Route
           path="/libraries"
           element={
