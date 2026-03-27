@@ -47,7 +47,7 @@ export function AppShell() {
       <div className="pointer-events-none absolute inset-0 grid-sheen opacity-[0.02]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(201,74,99,0.035),transparent_28%),linear-gradient(180deg,#fbf7f2_0%,#f7f3ed_100%)]" />
       <div className="relative grid min-h-screen lg:grid-cols-[280px_1fr]">
-        <aside className="flex min-h-screen flex-col justify-between border-r border-white/8 bg-[rgba(17,22,29,0.98)] px-6 py-7 text-white shadow-[8px_0_28px_rgba(12,16,21,0.12)] backdrop-blur-[18px]">
+        <aside className="flex min-h-screen flex-col justify-between border-r border-white/8 bg-[rgba(17,22,29,0.98)] px-6 py-7 text-white shadow-[8px_0_28px_rgba(12,16,21,0.12)] backdrop-blur-[18px] lg:sticky lg:top-0 lg:h-screen lg:self-start">
           <div>
             <div>
               <p className="text-[0.72rem] font-semibold uppercase tracking-[0.26em] text-white/42">Flight Deck</p>
@@ -78,17 +78,18 @@ export function AppShell() {
             </nav>
           </div>
 
-          <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.22em] text-white/38">
-            <span>{APP_VERSION}</span>
-            <a
-              href={APP_REPOSITORY_URL}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Open SysAtlas GitHub repository"
-              className="text-white/42 transition hover:text-white/78"
-            >
-              <Github className="h-3.5 w-3.5" />
-            </a>
+          <div className="mt-8 border-t border-white/8 pt-5">
+            <div className="flex items-center justify-between rounded-[20px] border border-white/8 bg-white/[0.04] px-3 py-2.5 shadow-[0_12px_24px_rgba(6,9,14,0.18)]">
+              <span className="text-xs font-semibold uppercase tracking-[0.22em] text-white/54">{APP_VERSION}</span>
+              <a
+                href={APP_REPOSITORY_URL}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Open SysAtlas GitHub repository"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[rgba(201,74,99,0.24)] bg-[rgba(201,74,99,0.16)] text-white shadow-[0_10px_18px_rgba(201,74,99,0.16)] transition hover:border-[rgba(201,74,99,0.36)] hover:bg-[rgba(201,74,99,0.24)]">
+                <Github className="h-4 w-4" />
+              </a>
+            </div>
           </div>
         </aside>
 
