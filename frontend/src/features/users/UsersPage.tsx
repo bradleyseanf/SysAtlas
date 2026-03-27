@@ -5,7 +5,9 @@ import { EmptyState } from "../../components/EmptyState";
 import { StatusBadge } from "../../components/StatusBadge";
 import { api } from "../../lib/api";
 import { hasPermission, settingsRoutePermissions } from "../../lib/access";
+import { useDevModeUrlState } from "../../lib/devMode";
 import { formatDateTime } from "../../lib/formatters";
+import { getTestUsersResponse } from "../../tests/inventoryFixtures";
 import { useAuth } from "../auth/AuthContext";
 
 function lifecycleTone(lifecycle: string) {
@@ -31,9 +33,10 @@ function accountTone(status: string) {
 export function UsersPage() {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { isDevMode, withDevMode } = useDevModeUrlState();
   const usersQuery = useQuery({
-    queryKey: ["users"],
-    queryFn: api.getUsers,
+    queryKey: ["users", isDevMode ? "dev" : "live"],
+    queryFn: () => (isDevMode ? Promise.resolve(getTestUsersResponse()) : api.getUsers()),
   });
 
   const data = usersQuery.data;
@@ -41,11 +44,11 @@ export function UsersPage() {
 
   return (
     <div className="space-y-6">
-      {canManageIntegrations ? (
+      {canManageIntegrations && !isDevMode ? (
         <div className="flex justify-end">
           <button
             type="button"
-            onClick={() => navigate("/settings/integrations?module=users")}
+            onClick={() => navigate(withDevMode("/settings/integrations?module=users"))}
             className="atlas-primary-button rounded-2xl px-4 py-2.5 text-sm font-semibold"
           >
             Integrate Now
@@ -67,7 +70,7 @@ export function UsersPage() {
             title={data.source_status.has_configured_source ? "No synced users yet" : "No integration setup yet"}
             description={data.source_status.empty_state_message}
             actionLabel={canManageIntegrations ? "Integrate Now" : "Refresh"}
-            onAction={() => (canManageIntegrations ? navigate("/settings/integrations?module=users") : void usersQuery.refetch())}
+            onAction={() => (canManageIntegrations ? navigate(withDevMode("/settings/integrations?module=users")) : void usersQuery.refetch())}
           />
         ) : (
           <section className="atlas-panel overflow-hidden rounded-[28px]">

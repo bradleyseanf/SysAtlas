@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { StatCard } from "../../components/StatCard";
 import { api } from "../../lib/api";
 import { hasPermission, moduleRoutePermissions, settingsRoutePermissions } from "../../lib/access";
+import { useDevModeUrlState } from "../../lib/devMode";
+import { getTestDevicesResponse, getTestUsersResponse } from "../../tests/inventoryFixtures";
 import { useAuth } from "../auth/AuthContext";
 
 function librarySourceCount(items: Array<{ children: Array<unknown> }>) {
@@ -12,6 +14,7 @@ function librarySourceCount(items: Array<{ children: Array<unknown> }>) {
 
 export function HomePage() {
   const { session } = useAuth();
+  const { isDevMode, withDevMode } = useDevModeUrlState();
 
   if (!session) {
     return null;
@@ -31,14 +34,14 @@ export function HomePage() {
   });
 
   const usersQuery = useQuery({
-    queryKey: ["users"],
-    queryFn: api.getUsers,
+    queryKey: ["users", isDevMode ? "dev" : "live"],
+    queryFn: () => (isDevMode ? Promise.resolve(getTestUsersResponse()) : api.getUsers()),
     enabled: canViewUsers,
   });
 
   const devicesQuery = useQuery({
-    queryKey: ["devices"],
-    queryFn: api.getDevices,
+    queryKey: ["devices", isDevMode ? "dev" : "live"],
+    queryFn: () => (isDevMode ? Promise.resolve(getTestDevicesResponse()) : api.getDevices()),
     enabled: canViewDevices,
   });
 
@@ -89,42 +92,42 @@ export function HomePage() {
   const quickLinks = [
     canViewLibraries
       ? {
-          to: "/libraries",
+          to: withDevMode("/libraries"),
           label: "Libraries",
           description: "Review connected SharePoint and Teams library sources.",
         }
       : null,
     canViewUsers
       ? {
-          to: "/users",
+          to: withDevMode("/users"),
           label: "Users",
           description: "Work from the synced organization user inventory.",
         }
       : null,
     canViewDevices
       ? {
-          to: "/devices",
+          to: withDevMode("/devices"),
           label: "Devices",
           description: "Review the managed device inventory in one place.",
         }
       : null,
     canManageProfiles
       ? {
-          to: "/settings/profiles",
+          to: withDevMode("/settings/profiles"),
           label: "Profiles",
           description: "Define access profiles for SysAtlas sign-in accounts.",
         }
       : null,
     canManageAccessUsers
       ? {
-          to: "/settings/users",
+          to: withDevMode("/settings/users"),
           label: "Access Users",
           description: "Manage the people who can log in to this platform.",
         }
       : null,
     canManageIntegrations
       ? {
-          to: "/settings/integrations",
+          to: withDevMode("/settings/integrations"),
           label: "Integrations",
           description: "Launch SharePoint, Teams, and other provider sessions.",
         }

@@ -5,7 +5,9 @@ import { EmptyState } from "../../components/EmptyState";
 import { StatusBadge } from "../../components/StatusBadge";
 import { api } from "../../lib/api";
 import { hasPermission, settingsRoutePermissions } from "../../lib/access";
+import { useDevModeUrlState } from "../../lib/devMode";
 import { formatDateTime } from "../../lib/formatters";
+import { getTestDevicesResponse } from "../../tests/inventoryFixtures";
 import { useAuth } from "../auth/AuthContext";
 
 function complianceTone(status: string) {
@@ -23,9 +25,10 @@ function complianceTone(status: string) {
 export function DevicesPage() {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { isDevMode, withDevMode } = useDevModeUrlState();
   const devicesQuery = useQuery({
-    queryKey: ["devices"],
-    queryFn: api.getDevices,
+    queryKey: ["devices", isDevMode ? "dev" : "live"],
+    queryFn: () => (isDevMode ? Promise.resolve(getTestDevicesResponse()) : api.getDevices()),
   });
 
   const data = devicesQuery.data;
@@ -33,11 +36,11 @@ export function DevicesPage() {
 
   return (
     <div className="space-y-6">
-      {canManageIntegrations ? (
+      {canManageIntegrations && !isDevMode ? (
         <div className="flex justify-end">
           <button
             type="button"
-            onClick={() => navigate("/settings/integrations?module=devices")}
+            onClick={() => navigate(withDevMode("/settings/integrations?module=devices"))}
             className="atlas-primary-button rounded-2xl px-4 py-2.5 text-sm font-semibold"
           >
             Integrate Now
@@ -59,7 +62,7 @@ export function DevicesPage() {
             title={data.source_status.has_configured_source ? "No synced devices yet" : "No integration setup yet"}
             description={data.source_status.empty_state_message}
             actionLabel={canManageIntegrations ? "Integrate Now" : "Refresh"}
-            onAction={() => (canManageIntegrations ? navigate("/settings/integrations?module=devices") : void devicesQuery.refetch())}
+            onAction={() => (canManageIntegrations ? navigate(withDevMode("/settings/integrations?module=devices")) : void devicesQuery.refetch())}
           />
         ) : (
           <section className="atlas-panel overflow-hidden rounded-[28px]">
