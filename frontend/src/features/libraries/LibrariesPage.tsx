@@ -8,6 +8,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { StatusBadge } from "../../components/StatusBadge";
 import { api } from "../../lib/api";
 import { hasPermission, settingsRoutePermissions } from "../../lib/access";
+import { useDevModeUrlState } from "../../lib/devMode";
 import { formatDateTime, humanizeKey } from "../../lib/formatters";
 import type { LibraryNode } from "../../types/api";
 import { useAuth } from "../auth/AuthContext";
@@ -70,6 +71,7 @@ function stageTone(stageStatus: string) {
 export function LibrariesPage() {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { withDevMode } = useDevModeUrlState();
   const librariesQuery = useQuery({
     queryKey: ["libraries"],
     queryFn: api.getLibraries,
@@ -170,7 +172,7 @@ export function LibrariesPage() {
         title="No library sources connected"
         description="Connect Microsoft SharePoint or Microsoft Teams in Settings / Integrations, then the connected sources will appear here."
         actionLabel={canManageIntegrations ? "Open Integrations" : "Refresh"}
-        onAction={() => (canManageIntegrations ? navigate("/settings/integrations?module=libraries") : void librariesQuery.refetch())}
+        onAction={() => (canManageIntegrations ? navigate(withDevMode("/settings/integrations?module=libraries")) : void librariesQuery.refetch())}
       />
     );
   }
@@ -181,7 +183,7 @@ export function LibrariesPage() {
         <div className="flex justify-end">
           <button
             type="button"
-            onClick={() => navigate("/settings/integrations?module=libraries")}
+            onClick={() => navigate(withDevMode("/settings/integrations?module=libraries"))}
             className="atlas-primary-button rounded-2xl px-4 py-2.5 text-sm font-semibold"
           >
             Manage Sources

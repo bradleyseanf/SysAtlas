@@ -9,6 +9,7 @@ import {
   moduleRoutePermissions,
   pageTitleForPath,
 } from "../../lib/access";
+import { useDevModeUrlState } from "../../lib/devMode";
 import { initialsForUser } from "../../lib/formatters";
 import { useAuth } from "../auth/AuthContext";
 
@@ -30,6 +31,7 @@ const baseNavigationItems: NavigationItem[] = [
 export function AppShell() {
   const location = useLocation();
   const { session, signOut } = useAuth();
+  const { devModeQueryValue, isDevMode, setDevMode, withDevMode } = useDevModeUrlState();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   useEffect(() => {
@@ -71,7 +73,7 @@ export function AppShell() {
                 return (
                   <NavLink
                     key={item.to}
-                    to={item.to}
+                    to={withDevMode(item.to)}
                     end={item.end}
                     className={({ isActive }) =>
                       `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${
@@ -115,7 +117,7 @@ export function AppShell() {
               <div className="relative flex items-center gap-3">
                 {canManageSettings ? (
                   <NavLink
-                    to="/settings"
+                    to={withDevMode("/settings")}
                     aria-label="Open settings"
                     className={({ isActive }) =>
                       `inline-flex h-12 w-12 items-center justify-center rounded-2xl border transition ${
@@ -161,6 +163,35 @@ export function AppShell() {
                         <p className="mt-1 text-sm font-medium text-atlas">{session.user.is_active ? "Active" : "Disabled"}</p>
                       </div>
                     </div>
+                    {canManageSettings ? (
+                      <div className="atlas-panel-soft mt-4 flex items-center justify-between gap-4 rounded-2xl px-4 py-3">
+                        <div>
+                          <p className="text-atlas-accent-soft text-[0.72rem] font-semibold uppercase tracking-[0.18em]">Test Mode</p>
+                          <p className="mt-1 text-sm font-medium text-atlas">{isDevMode ? "Enabled" : "Disabled"}</p>
+                          <p className="mt-1 text-xs text-atlas-muted">dev_mode={devModeQueryValue ?? "false"}</p>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={isDevMode}
+                          aria-label="Toggle test mode"
+                          onClick={() => setDevMode(!isDevMode)}
+                          className={`relative inline-flex h-8 w-14 items-center rounded-full border transition ${
+                            isDevMode
+                              ? "border-[rgba(201,74,99,0.28)] bg-[rgba(201,74,99,0.14)]"
+                              : "border-[rgba(23,32,42,0.1)] bg-[rgba(23,32,42,0.06)]"
+                          }`}
+                        >
+                          <span
+                            className={`inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-atlas shadow-[0_8px_18px_rgba(23,32,42,0.12)] transition ${
+                              isDevMode ? "translate-x-7" : "translate-x-1"
+                            }`}
+                          >
+                            {isDevMode ? "On" : "Off"}
+                          </span>
+                        </button>
+                      </div>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => {

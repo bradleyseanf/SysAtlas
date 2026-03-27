@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 
 import { StatusBadge } from "../../components/StatusBadge";
 import { api } from "../../lib/api";
@@ -54,6 +54,7 @@ function popupFeatures() {
 
 export function IntegrationsPage() {
   const queryClient = useQueryClient();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [providerSearch, setProviderSearch] = useState("");
   const [notice, setNotice] = useState("");
@@ -141,12 +142,16 @@ export function IntegrationsPage() {
     });
 
   function handleFilterChange(nextFilter: ModuleFilter) {
+    const nextSearchParams = new URLSearchParams(location.search);
+
     if (nextFilter === "all") {
-      setSearchParams({});
+      nextSearchParams.delete("module");
+      setSearchParams(nextSearchParams, { replace: true });
       return;
     }
 
-    setSearchParams({ module: nextFilter });
+    nextSearchParams.set("module", nextFilter);
+    setSearchParams(nextSearchParams, { replace: true });
   }
 
   function saveProviderConnection(provider: IntegrationProvider, connection?: IntegrationConnection) {

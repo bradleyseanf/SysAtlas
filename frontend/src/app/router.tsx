@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "../lib/api";
 import { defaultAuthorizedRoute, defaultSettingsRoute, hasPermission, settingsRoutePermissions, moduleRoutePermissions } from "../lib/access";
+import { withDevModeSearch } from "../lib/devMode";
 import { AccessPortal } from "../features/auth/AccessPortal";
 import { useAuth } from "../features/auth/AuthContext";
 import { HomePage } from "../features/home/HomePage";
@@ -24,16 +25,18 @@ function RequirePermission({
   children: ReactNode;
 }) {
   const { session } = useAuth();
+  const location = useLocation();
 
   if (!session) {
     return null;
   }
 
-  return allowed ? children : <Navigate to={defaultAuthorizedRoute(session.user)} replace />;
+  return allowed ? children : <Navigate to={withDevModeSearch(defaultAuthorizedRoute(session.user), location.search)} replace />;
 }
 
 export function AppRouter() {
   const { isReady, session } = useAuth();
+  const location = useLocation();
   const setupStatusQuery = useQuery({
     queryKey: ["auth", "setup-status"],
     queryFn: api.getSetupStatus,
@@ -57,8 +60,11 @@ export function AppRouter() {
     );
   }
 
-  const fallbackRoute = defaultAuthorizedRoute(session.user);
-  const fallbackSettingsRoute = defaultSettingsRoute(session.user) ?? fallbackRoute;
+  const fallbackRoute = withDevModeSearch(defaultAuthorizedRoute(session.user), location.search);
+  const fallbackSettingsRoute = withDevModeSearch(
+    defaultSettingsRoute(session.user) ?? defaultAuthorizedRoute(session.user),
+    location.search,
+  );
 
   return (
     <Routes>
