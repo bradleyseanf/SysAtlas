@@ -50,7 +50,7 @@ export function AppShell() {
         <aside className="flex min-h-screen flex-col justify-between border-r border-white/8 bg-[rgba(17,22,29,0.98)] px-6 py-7 text-white shadow-[8px_0_28px_rgba(12,16,21,0.12)] backdrop-blur-[18px]">
           <div>
             <div>
-              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.26em] text-white/42">Control Plane</p>
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.26em] text-white/42">Flight Deck</p>
               <h1 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-white">{APP_NAME}</h1>
             </div>
 
