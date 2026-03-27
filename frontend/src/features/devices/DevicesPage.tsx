@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
 import { EmptyState } from "../../components/EmptyState";
-import { PageHeader } from "../../components/PageHeader";
 import { StatCard } from "../../components/StatCard";
 import { StatusBadge } from "../../components/StatusBadge";
 import { api } from "../../lib/api";
@@ -31,20 +30,15 @@ export function DevicesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow="Devices Module"
-        title="Managed endpoint inventory"
-        description="Centralize device inventory, ownership, compliance posture, and source-system visibility in one operational view. The module pushes operators into Intune or other device-source setup when inventory is still disconnected."
-        actions={
-          <button
-            type="button"
-            onClick={() => navigate("/integrations?module=devices")}
-            className="rounded-2xl border border-[#df6f87]/35 bg-[#c73e59] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#d55472]"
-          >
-            Integrate Now
-          </button>
-        }
-      />
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => navigate("/integrations?module=devices")}
+          className="rounded-2xl border border-[#df6f87]/35 bg-[#c73e59] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#d55472]"
+        >
+          Integrate Now
+        </button>
+      </div>
 
       {devicesQuery.isLoading ? (
         <section className="rounded-[28px] border border-white/10 bg-[rgba(29,16,21,0.76)] px-5 py-12 text-center text-sm text-[#f3dce1]/72 backdrop-blur-[12px]">

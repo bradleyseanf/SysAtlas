@@ -2,7 +2,6 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 
-import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { api } from "../../lib/api";
 import { formatDateTime, humanizeKey } from "../../lib/formatters";
@@ -144,12 +143,6 @@ export function IntegrationsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow="Integrations"
-        title="Platform configuration and secret storage"
-        description="Configure your upstream platforms here. Each provider has its own registration block and saves connection credentials encrypted in the database so user and device modules can light up when a source is available."
-      />
-
       <div className="flex flex-wrap gap-3">
         {filterOptions.map((option) => (
           <button
@@ -183,19 +176,14 @@ export function IntegrationsPage() {
         <>
           <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[rgba(29,16,21,0.76)] shadow-[0_22px_50px_rgba(8,4,6,0.28)] backdrop-blur-[12px]">
             <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
-              <div>
-                <p className="text-sm font-semibold text-[#fff7f8]">Configured Connections</p>
-                <p className="mt-1 text-sm text-[#f3dce1]/72">Connections already staged for user or device modules.</p>
-              </div>
+              <p className="text-sm font-semibold text-[#fff7f8]">Configured Connections</p>
               <span className="rounded-full border border-[#df6f87]/25 bg-[rgba(215,84,114,0.12)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#f2c8d1]">
                 {configuredConnections.length} configured
               </span>
             </div>
 
             {configuredConnections.length === 0 ? (
-              <div className="px-6 py-10 text-sm leading-7 text-[#f3dce1]/72">
-                No integrations have been configured yet. Select a provider below to start storing encrypted connection details.
-              </div>
+              <div className="px-6 py-10 text-sm text-[#f3dce1]/72">No integrations configured yet.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full border-collapse text-left">
@@ -239,10 +227,7 @@ export function IntegrationsPage() {
           <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
             <section className="rounded-[28px] border border-white/10 bg-[rgba(29,16,21,0.76)] p-5 shadow-[0_22px_50px_rgba(8,4,6,0.28)] backdrop-blur-[12px]">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-[#fff7f8]">Available Providers</p>
-                  <p className="mt-1 text-sm text-[#f3dce1]/72">Each integration lives in its own backend directory and is registered here.</p>
-                </div>
+                <p className="text-sm font-semibold text-[#fff7f8]">Available Providers</p>
               </div>
 
               <div className="mt-5 space-y-3">
@@ -262,10 +247,7 @@ export function IntegrationsPage() {
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-[#fff7f8]">{provider.name}</p>
-                          <p className="mt-1 text-sm leading-6 text-[#f3dce1]/72">{provider.description}</p>
-                        </div>
+                        <p className="text-sm font-semibold text-[#fff7f8]">{provider.name}</p>
                         <StatusBadge label={connection ? "Configured" : "Ready"} tone={connection ? "positive" : "neutral"} />
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -286,17 +268,12 @@ export function IntegrationsPage() {
                     <div>
                       <p className="text-[0.74rem] font-semibold uppercase tracking-[0.18em] text-[#d55472]">{selectedProvider.category}</p>
                       <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[#fff7f8]">{selectedProvider.name}</h2>
-                      <p className="mt-3 max-w-3xl text-sm leading-7 text-[#f3dce1]/72">{selectedProvider.description}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {selectedProvider.supported_modules.map((moduleName) => (
                         <StatusBadge key={moduleName} label={moduleName} tone="info" />
                       ))}
                     </div>
-                  </div>
-
-                  <div className="mt-5 rounded-[24px] border border-white/10 bg-black/10 p-4 text-sm leading-7 text-[#f3dce1]/72">
-                    Auth strategy: <span className="font-semibold text-[#fff7f8]">{humanizeKey(selectedProvider.auth_strategy)}</span>. Credentials supplied here are encrypted before persistence.
                   </div>
 
                   {notice ? (
@@ -341,10 +318,6 @@ export function IntegrationsPage() {
                                 required={field.required && !secretConfigured}
                               />
                             )}
-                            <span className="mt-2 block text-xs leading-6 text-[#f3dce1]/64">
-                              {field.help_text}
-                              {field.secret && secretConfigured ? " A secret is already stored for this field." : ""}
-                            </span>
                           </label>
                         );
                       })}

@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
 import { EmptyState } from "../../components/EmptyState";
-import { PageHeader } from "../../components/PageHeader";
 import { StatCard } from "../../components/StatCard";
 import { StatusBadge } from "../../components/StatusBadge";
 import { api } from "../../lib/api";
@@ -39,27 +38,22 @@ export function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow="Users Module"
-        title="Directory-backed people inventory"
-        description="Track user records, lifecycle state, and readiness for onboarding or offboarding workflows. When no source system is connected, SysAtlas pushes the operator directly to the relevant integration flow."
-        actions={
-          <button
-            type="button"
-            onClick={() => navigate("/integrations?module=users")}
-            className="rounded-2xl border border-[#df6f87]/35 bg-[#c73e59] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#d55472]"
-          >
-            Integrate Now
-          </button>
-        }
-      />
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => navigate("/integrations?module=users")}
+          className="atlas-primary-button rounded-2xl px-4 py-2.5 text-sm font-semibold"
+        >
+          Integrate Now
+        </button>
+      </div>
 
       {usersQuery.isLoading ? (
-        <section className="rounded-[28px] border border-white/10 bg-[rgba(29,16,21,0.76)] px-5 py-12 text-center text-sm text-[#f3dce1]/72 backdrop-blur-[12px]">
+        <section className="atlas-panel rounded-[28px] px-5 py-12 text-center text-sm text-atlas-muted">
           Loading user inventory...
         </section>
       ) : usersQuery.isError ? (
-        <section className="rounded-[28px] border border-[#d55472]/30 bg-[rgba(123,30,52,0.18)] px-5 py-5 text-sm leading-6 text-[#fde6eb]">
+        <section className="atlas-error rounded-[28px] px-5 py-5 text-sm leading-6">
           {usersQuery.error instanceof Error ? usersQuery.error.message : "Unable to load the users module."}
         </section>
       ) : data ? (
@@ -79,22 +73,22 @@ export function UsersPage() {
               onAction={() => navigate("/integrations?module=users")}
             />
           ) : (
-            <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[rgba(29,16,21,0.76)] shadow-[0_22px_50px_rgba(8,4,6,0.28)] backdrop-blur-[12px]">
+            <section className="atlas-panel overflow-hidden rounded-[28px]">
               <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
                 <div>
-                  <p className="text-sm font-semibold text-[#fff7f8]">All Users</p>
-                  <p className="mt-1 text-sm text-[#f3dce1]/72">
+                  <p className="text-sm font-semibold text-atlas">All Users</p>
+                  <p className="mt-1 text-sm text-atlas-muted">
                     Sources: {data.source_status.configured_sources.map((source) => source.name).join(", ")}
                   </p>
                 </div>
-                <span className="rounded-full border border-[#df6f87]/25 bg-[rgba(215,84,114,0.12)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#f2c8d1]">
+                <span className="atlas-pill rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]">
                   {data.items.length} records
                 </span>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="min-w-full border-collapse text-left">
-                  <thead className="bg-[rgba(255,255,255,0.04)] text-[0.74rem] font-semibold uppercase tracking-[0.18em] text-[#d2bac0]">
+                  <thead className="atlas-table-head text-[0.74rem] font-semibold uppercase tracking-[0.18em]">
                     <tr>
                       <th className="px-6 py-4">User</th>
                       <th className="px-6 py-4">Source</th>
@@ -108,11 +102,11 @@ export function UsersPage() {
                   </thead>
                   <tbody>
                     {data.items.map((item) => (
-                      <tr key={item.id} className="border-t border-white/6 align-top text-sm text-[#f0dde1]/82">
+                      <tr key={item.id} className="atlas-table-row border-t border-white/6 align-top text-sm">
                         <td className="px-6 py-4">
-                          <p className="font-semibold text-[#fff7f8]">{item.display_name}</p>
-                          <p className="mt-1 text-[#f3dce1]/72">{item.email}</p>
-                          <p className="mt-2 text-xs uppercase tracking-[0.12em] text-[#b88a95]">{item.title ?? "No title"}</p>
+                          <p className="font-semibold text-atlas">{item.display_name}</p>
+                          <p className="mt-1 text-atlas-muted">{item.email}</p>
+                          <p className="mt-2 text-xs uppercase tracking-[0.12em] text-atlas-dim">{item.title ?? "No title"}</p>
                         </td>
                         <td className="px-6 py-4">{item.source_provider}</td>
                         <td className="px-6 py-4">{item.department ?? "Not assigned"}</td>
