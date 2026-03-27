@@ -22,20 +22,14 @@ function connectionTone(status: string) {
   if (status === "configured" || status === "connected") {
     return "positive" as const;
   }
-  if (status === "authorization_pending") {
-    return "warning" as const;
-  }
   return "neutral" as const;
 }
 
 function connectionLabel(status: string) {
-  if (status === "authorization_pending") {
-    return "Session Staged";
-  }
-  if (status === "configured") {
+  if (status === "configured" || status === "connected") {
     return "Connected";
   }
-  return humanizeKey(status);
+  return "Not Connected";
 }
 
 function defaultConnectionLabel(providerName: string) {
@@ -90,8 +84,11 @@ export function IntegrationsPage() {
     };
   }, []);
 
-  const configuredConnections = connectionsQuery.data?.items ?? [];
-  const configuredConnectionMap = new Map(configuredConnections.map((item) => [item.provider, item]));
+  const allConnections = connectionsQuery.data?.items ?? [];
+  const connectedConnections = allConnections.filter(
+    (item) => item.status === "configured" || item.status === "connected"
+  );
+  const allConnectionMap = new Map(allConnections.map((item) => [item.provider, item]));
 
   const moduleFilteredProviders = (() => {
     const providers = catalogQuery.data?.providers ?? [];
@@ -106,7 +103,7 @@ export function IntegrationsPage() {
   const providerRows = moduleFilteredProviders
     .map((provider) => ({
       provider,
-      connection: configuredConnectionMap.get(provider.id),
+      connection: allConnectionMap.get(provider.id),
     }))
     .filter(({ provider, connection }) => {
       if (!normalizedProviderSearch) {
@@ -128,7 +125,9 @@ export function IntegrationsPage() {
       return searchHaystack.includes(normalizedProviderSearch);
     })
     .sort((left, right) => {
-      const configuredDelta = Number(Boolean(right.connection)) - Number(Boolean(left.connection));
+      const configuredDelta =
+        Number(right.connection?.status === "configured" || right.connection?.status === "connected") -
+        Number(left.connection?.status === "configured" || left.connection?.status === "connected");
       if (configuredDelta !== 0) {
         return configuredDelta;
       }
@@ -152,6 +151,13 @@ export function IntegrationsPage() {
   const activeProviderRow = providerRows.find(({ provider }) => provider.id === selectedProviderId) ?? providerRows[0];
   const selectedProvider = activeProviderRow?.provider;
   const selectedConnection = activeProviderRow?.connection;
+  const selectedProviderIsConnected =
+    selectedConnection?.status === "configured" || selectedConnection?.status === "connected";
+  const canCompleteSelectedConnection =
+    Boolean(selectedProvider) &&
+    !selectedProviderIsConnected &&
+    ((selectedProvider ? launchReadyProviders[selectedProvider.id] : false) ||
+      selectedConnection?.status === "authorization_pending");
 
   function handleFilterChange(nextFilter: ModuleFilter) {
     if (nextFilter === "all") {
@@ -162,16 +168,12 @@ export function IntegrationsPage() {
     setSearchParams({ module: nextFilter });
   }
 
-  function stageProviderConnection(
-    provider: IntegrationProvider,
-    status: "authorization_pending" | "configured",
-    connection?: IntegrationConnection
-  ) {
+  function saveProviderConnection(provider: IntegrationProvider, connection?: IntegrationConnection) {
     saveMutation.mutate({
       provider: provider.id,
       tenant_label: connection?.tenant_label ?? defaultConnectionLabel(provider.name),
       config: {},
-      status,
+      status: "configured",
     });
   }
 
@@ -183,12 +185,8 @@ export function IntegrationsPage() {
     }
 
     popup.focus();
-    setNotice(`${provider.name} opened in a secure provider session. Finish the sign-in there, then return here.`);
+    setNotice(`${provider.name} opened in a secure provider session. Finish sign-in there, then return here to connect it.`);
     setLaunchReadyProviders((current) => ({ ...current, [provider.id]: false }));
-
-    if (!connection) {
-      stageProviderConnection(provider, "authorization_pending", connection);
-    }
 
     const existingWatcher = launchWatchersRef.current[provider.id];
     if (existingWatcher) {
@@ -207,14 +205,14 @@ export function IntegrationsPage() {
       }
 
       setLaunchReadyProviders((current) => ({ ...current, [provider.id]: true }));
-      setNotice(`${provider.name} session closed. If the provider granted access, complete the connection below.`);
+      setNotice(`${provider.name} session closed. If access was granted, connect it here.`);
     }, 500);
   }
 
   return (
     <div className="space-y-6">
       <section className="atlas-note rounded-[28px] p-5 text-sm leading-7">
-        Integrations launch in provider-hosted browser sessions. SysAtlas stages the handoff here, but it does not ask for raw credentials in embedded form fields.
+        Integrations launch in provider-hosted browser sessions. They only show as connected after the live provider link is saved here.
       </section>
 
       <div className="flex flex-wrap gap-3">
@@ -249,16 +247,16 @@ export function IntegrationsPage() {
           <section className="atlas-panel overflow-hidden rounded-[30px]">
             <div className="flex items-center justify-between border-b border-[rgba(23,32,42,0.08)] px-6 py-4">
               <div>
-                <p className="text-sm font-semibold text-atlas">Linked Providers</p>
-                <p className="mt-1 text-sm text-atlas-muted">External sessions that have already been staged or connected.</p>
+                <p className="text-sm font-semibold text-atlas">Connected Providers</p>
+                <p className="mt-1 text-sm text-atlas-muted">External providers with a saved, active integration.</p>
               </div>
               <span className="atlas-pill rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]">
-                {configuredConnections.length} linked
+                {connectedConnections.length} connected
               </span>
             </div>
 
-            {configuredConnections.length === 0 ? (
-              <div className="px-6 py-10 text-sm text-atlas-muted">No integrations staged or connected yet.</div>
+            {connectedConnections.length === 0 ? (
+              <div className="px-6 py-10 text-sm text-atlas-muted">No integrations connected yet.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full border-collapse text-left">
@@ -272,7 +270,7 @@ export function IntegrationsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {configuredConnections.map((connection) => (
+                    {connectedConnections.map((connection) => (
                       <tr key={connection.id} className="atlas-table-row border-t border-[rgba(23,32,42,0.06)] text-sm">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
@@ -363,7 +361,7 @@ export function IntegrationsPage() {
                             <td className="px-4 py-4 text-atlas-muted">{humanizeKey(provider.setup_mode)}</td>
                             <td className="px-4 py-4">
                               <StatusBadge
-                                label={connection ? connectionLabel(connection.status) : "Ready"}
+                                label={connection ? connectionLabel(connection.status) : "Not Connected"}
                                 tone={connection ? connectionTone(connection.status) : "neutral"}
                               />
                             </td>
@@ -408,7 +406,7 @@ export function IntegrationsPage() {
                           <StatusBadge key={moduleName} label={moduleName} tone="info" />
                         ))}
                         <StatusBadge
-                          label={selectedConnection ? connectionLabel(selectedConnection.status) : "Ready"}
+                          label={selectedConnection ? connectionLabel(selectedConnection.status) : "Not Connected"}
                           tone={selectedConnection ? connectionTone(selectedConnection.status) : "neutral"}
                         />
                       </div>
@@ -481,13 +479,13 @@ export function IntegrationsPage() {
                               </button>
                             ) : null}
 
-                            {launchReadyProviders[selectedProvider.id] || selectedConnection?.status === "authorization_pending" ? (
+                            {canCompleteSelectedConnection ? (
                               <button
                                 type="button"
-                                onClick={() => stageProviderConnection(selectedProvider, "configured", selectedConnection)}
+                                onClick={() => saveProviderConnection(selectedProvider, selectedConnection)}
                                 className="atlas-secondary-button rounded-2xl px-5 py-3 text-sm font-semibold"
                               >
-                                Complete Connection
+                                Connect Integration
                               </button>
                             ) : null}
                           </div>
