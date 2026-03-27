@@ -24,7 +24,7 @@ def _configured_source_options(db: Session, module_name: str) -> list[Integratio
     ).all()
     source_options: list[IntegrationOption] = []
     for connection in connections:
-        serialized = serialize_connection(db, connection)
+        serialized = serialize_connection(connection)
         if module_name not in serialized.supported_modules:
             continue
         source_options.append(IntegrationOption(id=serialized.provider, name=serialized.provider_name))

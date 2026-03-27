@@ -1,4 +1,3 @@
-import secrets
 from datetime import timedelta
 
 from fastapi import HTTPException, status
@@ -6,10 +5,10 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.user import User
 from app.schemas.auth import AuthResponse, AuthenticatedUser, BootstrapRequest, LoginRequest
-from app.services.system_settings import APP_SECRET_KEY, get_or_create_setting_value
 
 TOKEN_TTL = timedelta(hours=12)
 
@@ -32,22 +31,16 @@ def serialize_user(user: User) -> AuthenticatedUser:
     )
 
 
-def _access_token_for_user(db: Session, user: User) -> str:
-    secret = get_or_create_setting_value(
-        db,
-        APP_SECRET_KEY,
-        generator=lambda: secrets.token_urlsafe(48),
-        is_secret=True,
-    )
+def _access_token_for_user(user: User) -> str:
     return create_access_token(
         subject=str(user.id),
         email=user.email,
-        secret=secret,
+        secret=settings.require_app_secret_key(),
         expires_in=TOKEN_TTL,
     )
 
 
-def bootstrap_super_admin(payload: BootstrapRequest, db: Session) -> AuthResponse:
+def bootstrap_super_admin(payload: BootstrapRequest, db: Session) -> tuple[AuthResponse, str]:
     if user_count(db) > 0:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -78,14 +71,14 @@ def bootstrap_super_admin(payload: BootstrapRequest, db: Session) -> AuthRespons
 
     db.refresh(user)
 
-    return AuthResponse(
+    response = AuthResponse(
         message="First super admin account created.",
-        access_token=_access_token_for_user(db, user),
         user=serialize_user(user),
     )
+    return response, _access_token_for_user(user)
 
 
-def authenticate_user(payload: LoginRequest, db: Session) -> AuthResponse:
+def authenticate_user(payload: LoginRequest, db: Session) -> tuple[AuthResponse, str]:
     if user_count(db) == 0:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -105,8 +98,8 @@ def authenticate_user(payload: LoginRequest, db: Session) -> AuthResponse:
             detail="This account has been disabled.",
         )
 
-    return AuthResponse(
+    response = AuthResponse(
         message=f"Welcome back, {user.display_name or user.email}.",
-        access_token=_access_token_for_user(db, user),
         user=serialize_user(user),
     )
+    return response, _access_token_for_user(user)

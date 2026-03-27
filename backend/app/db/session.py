@@ -29,7 +29,7 @@ def database_status() -> str:
 
 def initialize_database() -> None:
     import app.models  # noqa: F401
-    from app.services.system_settings import ensure_system_secrets
+    from app.services.system_settings import migrate_legacy_system_secrets
 
     Base.metadata.create_all(bind=engine)
 
@@ -50,4 +50,4 @@ def initialize_database() -> None:
                 connection.execute(text(f"ALTER TABLE users ADD COLUMN {column_name} VARCHAR(120)"))
 
     with SessionLocal() as db:
-        ensure_system_secrets(db)
+        migrate_legacy_system_secrets(db)

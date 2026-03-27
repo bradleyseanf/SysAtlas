@@ -95,6 +95,8 @@ class AuthenticatedUser(BaseModel):
 
 class AuthResponse(BaseModel):
     message: str
-    access_token: str
-    token_type: str = "bearer"
+    user: AuthenticatedUser
+
+
+class SessionResponse(BaseModel):
     user: AuthenticatedUser

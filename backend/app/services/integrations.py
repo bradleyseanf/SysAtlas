@@ -62,7 +62,7 @@ def _config_preview(provider: IntegrationProviderDefinition, decrypted_config: d
     return preview, configured_fields, configured_secret_fields
 
 
-def serialize_connection(db: Session, connection: IntegrationConnection) -> IntegrationConnectionResponse:
+def serialize_connection(connection: IntegrationConnection) -> IntegrationConnectionResponse:
     provider = get_provider(connection.provider)
     if provider is None:
         raise HTTPException(
@@ -70,7 +70,7 @@ def serialize_connection(db: Session, connection: IntegrationConnection) -> Inte
             detail=f"Integration provider '{connection.provider}' is no longer registered.",
         )
 
-    decrypted_config = decrypt_config(db, connection.encrypted_config)
+    decrypted_config = decrypt_config(connection.encrypted_config)
     preview, configured_fields, configured_secret_fields = _config_preview(provider, decrypted_config)
     return IntegrationConnectionResponse(
         id=str(connection.id),
@@ -95,7 +95,7 @@ def list_connections(db: Session) -> IntegrationListResponse:
     items = db.scalars(
         select(IntegrationConnection).order_by(IntegrationConnection.updated_at.desc())
     ).all()
-    return IntegrationListResponse(items=[serialize_connection(db, item) for item in items])
+    return IntegrationListResponse(items=[serialize_connection(item) for item in items])
 
 
 def upsert_connection(payload: IntegrationConnectionUpsertRequest, db: Session) -> IntegrationConnectionMutationResponse:
@@ -109,7 +109,7 @@ def upsert_connection(payload: IntegrationConnectionUpsertRequest, db: Session) 
     existing = db.scalar(
         select(IntegrationConnection).where(IntegrationConnection.provider == provider.slug)
     )
-    existing_decrypted = decrypt_config(db, existing.encrypted_config) if existing else {}
+    existing_decrypted = decrypt_config(existing.encrypted_config) if existing else {}
     merged_config: dict[str, str] = {}
 
     for field in provider.fields:
@@ -128,7 +128,7 @@ def upsert_connection(payload: IntegrationConnectionUpsertRequest, db: Session) 
                 detail=f"{field.label} is required.",
             )
 
-    encrypted_config = encrypt_config(db, merged_config)
+    encrypted_config = encrypt_config(merged_config)
 
     if existing is None:
         connection = IntegrationConnection(
@@ -153,5 +153,5 @@ def upsert_connection(payload: IntegrationConnectionUpsertRequest, db: Session) 
 
     return IntegrationConnectionMutationResponse(
         message=f"{provider.name} integration saved.",
-        item=serialize_connection(db, connection),
+        item=serialize_connection(connection),
     )

@@ -24,6 +24,15 @@ def create_application() -> FastAPI:
         allow_headers=["*"],
     )
 
+    @application.middleware("http")
+    async def add_security_headers(request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "no-referrer")
+        response.headers.setdefault("Permissions-Policy", "camera=(), geolocation=(), microphone=()")
+        return response
+
     @application.on_event("startup")
     def startup() -> None:
         initialize_database()

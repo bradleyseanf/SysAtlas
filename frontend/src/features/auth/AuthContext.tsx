@@ -1,63 +1,71 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-import { setApiAccessToken } from "../../lib/api";
+import { api } from "../../lib/api";
 import type { AuthResponse, AuthUser } from "../../types/api";
 
 type AuthSession = {
-  token: string;
   user: AuthUser;
 };
 
 type AuthContextValue = {
+  isReady: boolean;
   session: AuthSession | null;
   signIn: (response: AuthResponse) => void;
-  signOut: () => void;
+  signOut: () => Promise<void>;
 };
-
-const SESSION_STORAGE_KEY = "sysatlas.session";
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function readStoredSession(): AuthSession | null {
-  const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
-  if (!raw) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(raw) as AuthSession;
-  } catch {
-    window.localStorage.removeItem(SESSION_STORAGE_KEY);
-    return null;
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<AuthSession | null>(() => readStoredSession());
+  const [session, setSession] = useState<AuthSession | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    setApiAccessToken(session?.token ?? null);
+    let isActive = true;
 
-    if (session) {
-      window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-      return;
+    async function restoreSession() {
+      try {
+        const response = await api.getCurrentSession();
+        if (isActive) {
+          setSession({ user: response.user });
+        }
+      } catch {
+        if (!isActive) {
+          return;
+        }
+
+        setSession(null);
+      } finally {
+        if (isActive) {
+          setIsReady(true);
+        }
+      }
     }
 
-    window.localStorage.removeItem(SESSION_STORAGE_KEY);
-  }, [session]);
+    void restoreSession();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   function signIn(response: AuthResponse) {
     setSession({
-      token: response.access_token,
       user: response.user,
     });
+    setIsReady(true);
   }
 
-  function signOut() {
-    setSession(null);
+  async function signOut() {
+    try {
+      await api.logout();
+    } finally {
+      setSession(null);
+      setIsReady(true);
+    }
   }
 
-  return <AuthContext.Provider value={{ session, signIn, signOut }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ isReady, session, signIn, signOut }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
