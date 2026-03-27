@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 import { StatusBadge } from "../../components/StatusBadge";
@@ -265,138 +265,79 @@ export function IntegrationsPage() {
                   </div>
                 ) : null}
 
-                <div className="divide-y divide-[rgba(23,32,42,0.08)]">
-                  {providerRows.map(({ provider, connection }) => {
-                    const providerIsConnected = isConnected(connection);
-                    const providerCanComplete = canCompleteConnection(provider.id, connection);
+                <div className="overflow-x-auto">
+                  <table className="min-w-full table-fixed border-collapse text-left">
+                    <thead className="atlas-table-head text-[0.7rem] font-semibold uppercase tracking-[0.18em]">
+                      <tr>
+                        <th className="w-[34%] px-4 py-3">Integration</th>
+                        <th className="hidden w-[13%] px-3 py-3 lg:table-cell">Category</th>
+                        <th className="hidden w-[14%] px-3 py-3 xl:table-cell">Modules</th>
+                        <th className="w-[12%] px-3 py-3">Status</th>
+                        <th className="hidden w-[13%] px-3 py-3 md:table-cell">Session Expires</th>
+                        <th className="hidden w-[14%] px-3 py-3 lg:table-cell">Updated</th>
+                        <th className="w-[14%] px-4 py-3 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {providerRows.map(({ provider, connection }) => {
+                        const providerIsConnected = isConnected(connection);
+                        const providerCanComplete = canCompleteConnection(provider.id, connection);
+                        const actionLabel = providerIsConnected ? "Connection" : "Connect";
 
-                    return (
-                      <article key={provider.id} className="px-5 py-5 lg:px-6 lg:py-6">
-                        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start gap-4">
-                              <IntegrationLogo providerId={provider.id} providerName={provider.name} size="md" />
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <p className="text-atlas-accent-soft text-[0.72rem] font-semibold uppercase tracking-[0.18em]">
-                                    {provider.category}
-                                  </p>
-                                  <StatusBadge
-                                    label={connection ? connectionLabel(connection.status) : "Not Connected"}
-                                    tone={connection ? connectionTone(connection.status) : "neutral"}
-                                  />
-                                  {provider.supported_modules.map((moduleName) => (
-                                    <StatusBadge key={moduleName} label={moduleName} tone="info" />
-                                  ))}
+                        return (
+                          <tr key={provider.id} className="atlas-table-row border-t border-[rgba(23,32,42,0.06)] text-sm">
+                            <td className="align-top px-4 py-4">
+                              <div className="flex items-start gap-3">
+                                <IntegrationLogo providerId={provider.id} providerName={provider.name} size="sm" />
+                                <div className="min-w-0">
+                                  <p className="truncate font-semibold text-atlas">{provider.name}</p>
+                                  <p className="mt-1 text-xs leading-5 text-atlas-dim">{provider.description}</p>
+                                  <div className="mt-2 space-y-1 text-[0.72rem] text-atlas-dim lg:hidden">
+                                    <p>{provider.category}</p>
+                                    <p>{provider.supported_modules.map(humanizeKey).join(", ")}</p>
+                                  </div>
                                 </div>
-
-                                <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-atlas">{provider.name}</h2>
-                                <p className="mt-3 text-sm leading-7 text-atlas-muted">{provider.description}</p>
                               </div>
-                            </div>
-
-                            <div className="mt-5 grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
-                              <article className="atlas-panel-soft rounded-[22px] px-4 py-3">
-                                <p className="text-atlas-accent-soft text-[0.72rem] font-semibold uppercase tracking-[0.16em]">
-                                  Auth Strategy
-                                </p>
-                                <p className="mt-2 text-sm font-medium text-atlas">{humanizeKey(provider.auth_strategy)}</p>
-                              </article>
-                              <article className="atlas-panel-soft rounded-[22px] px-4 py-3">
-                                <p className="text-atlas-accent-soft text-[0.72rem] font-semibold uppercase tracking-[0.16em]">
-                                  Connection Label
-                                </p>
-                                <p className="mt-2 text-sm font-medium text-atlas">
-                                  {connection?.tenant_label ?? defaultConnectionLabel(provider.name)}
-                                </p>
-                              </article>
-                              <article className="atlas-panel-soft rounded-[22px] px-4 py-3">
-                                <p className="text-atlas-accent-soft text-[0.72rem] font-semibold uppercase tracking-[0.16em]">
-                                  Session Expires
-                                </p>
-                                <p className="mt-2 text-sm font-medium text-atlas">{sessionExpiresLabel(connection)}</p>
-                              </article>
-                              <article className="atlas-panel-soft rounded-[22px] px-4 py-3">
-                                <p className="text-atlas-accent-soft text-[0.72rem] font-semibold uppercase tracking-[0.16em]">
-                                  Last Updated
-                                </p>
-                                <p className="mt-2 text-sm font-medium text-atlas">{formatDateTime(connection?.updated_at ?? null)}</p>
-                              </article>
-                            </div>
-
-                            <div className="mt-5 grid gap-4 2xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-                              <section className="atlas-panel-soft rounded-[24px] p-4">
-                                <p className="text-sm font-semibold text-atlas">Connection Flow</p>
-                                <ol className="mt-3 space-y-2">
-                                  {provider.setup_steps.map((step, index) => (
-                                    <li key={step} className="flex items-start gap-3 rounded-2xl bg-white/72 px-3 py-3">
-                                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[rgba(201,74,99,0.08)] text-xs font-semibold text-[var(--atlas-accent-text)]">
-                                        {index + 1}
-                                      </span>
-                                      <span className="text-sm leading-6 text-atlas-soft">{step}</span>
-                                    </li>
-                                  ))}
-                                </ol>
-                              </section>
-
-                              <section className="atlas-panel-soft rounded-[24px] p-4">
-                                <p className="text-sm font-semibold text-atlas">Security Notes</p>
-                                <div className="mt-3 space-y-2">
-                                  {provider.security_notes.map((note) => (
-                                    <div
-                                      key={note}
-                                      className="rounded-2xl bg-white/72 px-3 py-3 text-sm leading-6 text-atlas-soft"
-                                    >
-                                      {note}
-                                    </div>
-                                  ))}
-                                </div>
-                              </section>
-                            </div>
-                          </div>
-
-                          <div className="xl:w-[220px] xl:shrink-0">
-                            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                              <button
-                                type="button"
-                                onClick={() => handleLaunch(provider, connection)}
-                                className="atlas-secondary-button rounded-2xl px-5 py-3 text-sm font-semibold"
-                              >
-                                Connection
-                              </button>
-
-                              {providerCanComplete ? (
+                            </td>
+                            <td className="hidden align-top px-3 py-4 text-atlas-muted lg:table-cell">{provider.category}</td>
+                            <td className="hidden align-top px-3 py-4 text-atlas-muted xl:table-cell">
+                              {provider.supported_modules.map(humanizeKey).join(", ")}
+                            </td>
+                            <td className="align-top px-3 py-4">
+                              <StatusBadge
+                                label={connection ? connectionLabel(connection.status) : "Not Connected"}
+                                tone={connection ? connectionTone(connection.status) : "neutral"}
+                              />
+                            </td>
+                            <td className="hidden align-top px-3 py-4 text-atlas-muted md:table-cell">{sessionExpiresLabel(connection)}</td>
+                            <td className="hidden align-top px-3 py-4 text-atlas-muted lg:table-cell">
+                              {formatDateTime(connection?.updated_at ?? null)}
+                            </td>
+                            <td className="align-top px-4 py-4">
+                              <div className="flex justify-end">
                                 <button
                                   type="button"
-                                  onClick={() => saveProviderConnection(provider, connection)}
-                                  className="atlas-primary-button rounded-2xl px-5 py-3 text-sm font-semibold"
-                                >
-                                  Connect
-                                </button>
-                              ) : null}
+                                  onClick={() => {
+                                    if (providerCanComplete) {
+                                      saveProviderConnection(provider, connection);
+                                      return;
+                                    }
 
-                              {provider.documentation_url ? (
-                                <button
-                                  type="button"
-                                  onClick={() => window.open(provider.documentation_url ?? "", "_blank", "noopener,noreferrer")}
-                                  className="atlas-secondary-button inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold"
+                                    handleLaunch(provider, connection);
+                                  }}
+                                  className={`rounded-2xl px-4 py-2 text-sm font-semibold ${
+                                    providerCanComplete ? "atlas-primary-button" : "atlas-secondary-button"
+                                  }`}
                                 >
-                                  <ExternalLink className="h-4 w-4" />
-                                  Open Docs
+                                  {actionLabel}
                                 </button>
-                              ) : null}
-
-                              {providerIsConnected ? (
-                                <div className="atlas-note rounded-2xl px-4 py-3 text-sm leading-6">
-                                  This provider is already connected and available to its assigned modules.
-                                </div>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-                      </article>
-                    );
-                  })}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </>
             )}
