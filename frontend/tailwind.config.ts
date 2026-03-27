@@ -6,20 +6,22 @@ const config: Config = {
     extend: {
       colors: {
         atlas: {
-          ink: "#07111F",
-          surface: "#0D1B2A",
-          panel: "#11243A",
-          glow: "#2DD4BF",
-          gold: "#F4D35E",
-          mist: "#D8E8F4",
+          ink: "#0F0B0D",
+          surface: "#171114",
+          panel: "#21181D",
+          glow: "#C73E59",
+          gold: "#F0C8D0",
+          mist: "#F6EDF0",
+          sage: "#6B2735",
+          line: "#34262C",
         },
       },
       fontFamily: {
-        sans: ["Manrope", "system-ui", "sans-serif"],
-        display: ["Space Grotesk", "Manrope", "sans-serif"],
+        sans: ["IBM Plex Sans", "system-ui", "sans-serif"],
+        display: ["IBM Plex Sans", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        panel: "0 25px 80px rgba(7, 17, 31, 0.35)",
+        panel: "0 28px 80px rgba(4, 6, 9, 0.42)",
       },
       keyframes: {
         float: {
@@ -51,4 +53,3 @@ const config: Config = {
 };
 
 export default config;
-
