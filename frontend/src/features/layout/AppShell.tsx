@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Computer, FolderTree, LogOut, Settings, Users } from "lucide-react";
+import { Computer, FolderTree, Github, LogOut, Settings, Users } from "lucide-react";
 
-import { APP_NAME, APP_VERSION } from "../../lib/appMeta";
+import { APP_NAME, APP_REPOSITORY_URL, APP_VERSION } from "../../lib/appMeta";
 import {
   accessibleSettingsNavigation,
   defaultSettingsRoute,
@@ -78,7 +78,18 @@ export function AppShell() {
             </nav>
           </div>
 
-          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-white/38">{APP_VERSION}</div>
+          <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.22em] text-white/38">
+            <span>{APP_VERSION}</span>
+            <a
+              href={APP_REPOSITORY_URL}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Open SysAtlas GitHub repository"
+              className="text-white/42 transition hover:text-white/78"
+            >
+              <Github className="h-3.5 w-3.5" />
+            </a>
+          </div>
         </aside>
 
         <div className="relative flex min-h-screen flex-col">
