@@ -319,7 +319,7 @@ export function IntegrationsPage() {
                             onKeyDown={(event) => handleProviderRowKeyDown(event, provider.id)}
                             className={`group cursor-pointer border-t border-[rgba(23,32,42,0.06)] text-sm outline-none transition ${
                               isSelected
-                                ? "bg-[rgba(201,74,99,0.08)] text-atlas"
+                                ? "bg-[rgba(201,74,99,0.06)] text-atlas"
                                 : "atlas-table-row hover:bg-[rgba(23,32,42,0.03)] focus-visible:bg-[rgba(23,32,42,0.04)]"
                             }`}
                           >
@@ -375,7 +375,7 @@ export function IntegrationsPage() {
                     <div className="flex items-start gap-4">
                       <IntegrationLogo providerId={selectedProvider.id} providerName={selectedProvider.name} size="lg" />
                       <div>
-                        <p className="text-atlas-accent text-[0.74rem] font-semibold uppercase tracking-[0.18em]">
+                        <p className="text-atlas-accent-soft text-[0.74rem] font-semibold uppercase tracking-[0.18em]">
                           {selectedProvider.category}
                         </p>
                         <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-atlas">{selectedProvider.name}</h2>
