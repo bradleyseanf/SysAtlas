@@ -1,7 +1,10 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+DEFAULT_SQLITE_PATH = Path(__file__).resolve().parents[2] / "sysatlas-dev.db"
 
 
 class Settings(BaseSettings):
@@ -15,7 +18,7 @@ class Settings(BaseSettings):
     project_name: str = "SysAtlas"
     environment: str = "development"
     api_v1_prefix: str = "/api/v1"
-    database_url: str | None = None
+    database_url: str = f"sqlite+pysqlite:///{DEFAULT_SQLITE_PATH}"
     cors_origins_raw: str = Field(
         default="http://localhost:3000,http://localhost:5173",
         validation_alias="CORS_ORIGINS",

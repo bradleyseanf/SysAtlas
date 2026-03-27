@@ -29,7 +29,8 @@
   }
 
   button,
-  input {
+  input,
+  textarea {
     font: inherit;
   }
 
@@ -40,7 +41,10 @@
 
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
-  input:-webkit-autofill:focus {
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus {
     -webkit-text-fill-color: #f6edf0;
     -webkit-box-shadow: 0 0 0 1000px #21181d inset;
     transition: background-color 9999s ease-in-out 0s;
@@ -48,10 +52,29 @@
 }
 
 @layer utilities {
+  ::selection {
+    background: rgba(199, 62, 89, 0.28);
+    color: #fff7f8;
+  }
+
   .grid-sheen {
     background-image:
       linear-gradient(rgba(246, 237, 240, 0.03) 1px, transparent 1px),
       linear-gradient(90deg, rgba(246, 237, 240, 0.03) 1px, transparent 1px);
     background-size: 104px 104px;
+  }
+
+  body::-webkit-scrollbar {
+    width: 12px;
+  }
+
+  body::-webkit-scrollbar-thumb {
+    border: 3px solid #0f1114;
+    border-radius: 9999px;
+    background: #6b2735;
+  }
+
+  body::-webkit-scrollbar-track {
+    background: #0f1114;
   }
 }

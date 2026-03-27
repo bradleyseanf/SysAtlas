@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.core.config import settings
+from app.integrations.registry import list_providers
 
 router = APIRouter()
 
@@ -11,19 +12,13 @@ def platform_meta() -> dict[str, object]:
         "name": settings.project_name,
         "environment": settings.environment,
         "features": [
-            "landing_portal",
-            "integration_registry_placeholder",
-            "workflow_modules_placeholder",
-            "community_connector_foundation",
+            "bootstrap_authentication",
+            "integration_catalog",
+            "users_module",
+            "devices_module",
+            "encrypted_integration_storage",
         ],
         "planned_integrations": [
-            "Microsoft Intune",
-            "Active Directory",
-            "Entra ID",
-            "Microsoft 365",
-            "Zoom",
-            "Zoho",
-            "Verizon",
+            provider.name for provider in list_providers()
         ],
     }
-
