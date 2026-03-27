@@ -41,21 +41,14 @@ export function AppShell() {
       return [];
     }
 
-    const visibleItems = baseNavigationItems.filter(
-      (item) => !item.permission || hasPermission(session.user, item.permission)
-    );
-
-    if (accessibleSettingsNavigation(session.user).length) {
-      visibleItems.push({ to: "/settings", label: "Settings", icon: Settings });
-    }
-
-    return visibleItems;
+    return baseNavigationItems.filter((item) => !item.permission || hasPermission(session.user, item.permission));
   }, [session]);
 
   if (!session) {
     return null;
   }
 
+  const canManageSettings = accessibleSettingsNavigation(session.user).length > 0;
   const currentTitle = pageTitleForPath(location.pathname);
   const fallbackName = `${session.user.first_name ?? ""} ${session.user.last_name ?? ""}`.trim();
   const displayName = (session.user.display_name ?? fallbackName) || session.user.email;
@@ -120,6 +113,22 @@ export function AppShell() {
               </div>
 
               <div className="relative flex items-center gap-3">
+                {canManageSettings ? (
+                  <NavLink
+                    to="/settings"
+                    aria-label="Open settings"
+                    className={({ isActive }) =>
+                      `inline-flex h-12 w-12 items-center justify-center rounded-2xl border transition ${
+                        isActive
+                          ? "border-[rgba(201,74,99,0.24)] bg-[rgba(201,74,99,0.1)] text-[var(--atlas-accent)] shadow-[0_14px_24px_rgba(201,74,99,0.1)]"
+                          : "atlas-secondary-button text-atlas-soft"
+                      }`
+                    }
+                  >
+                    <Settings className="h-5 w-5" />
+                  </NavLink>
+                ) : null}
+
                 <button
                   type="button"
                   onClick={() => setIsProfileOpen((current) => !current)}
