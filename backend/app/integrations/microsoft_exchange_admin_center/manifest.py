@@ -7,6 +7,18 @@ definition = IntegrationProviderDefinition(
     description="Prepare Exchange administration for mailbox offboarding, forwarding, and access-transfer tasks.",
     auth_strategy="oauth_client_credentials",
     supported_modules=("users",),
+    launch_url="https://admin.exchange.microsoft.com/",
+    documentation_url="https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow",
+    launch_button_label="Launch Exchange Session",
+    setup_steps=(
+        "Open Exchange Admin Center in a secure browser popup.",
+        "Sign in with the appropriate Exchange admin account and approve access.",
+        "Return to SysAtlas and save the linked session after browser authorization is complete.",
+    ),
+    security_notes=(
+        "Exchange access is initiated in Microsoft's hosted admin experience.",
+        "Any stored secrets remain encrypted and outside git-tracked artifacts.",
+    ),
     fields=(
         IntegrationFieldDefinition(
             key="tenant_id",

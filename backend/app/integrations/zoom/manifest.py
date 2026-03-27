@@ -7,6 +7,18 @@ definition = IntegrationProviderDefinition(
     description="Configure Zoom administration for account deprovisioning, license reassignment, and telephony coordination.",
     auth_strategy="server_to_server_oauth",
     supported_modules=("users",),
+    launch_url="https://marketplace.zoom.us/develop/create",
+    documentation_url="https://developers.zoom.us/docs/integrations/oauth/",
+    launch_button_label="Launch Zoom Session",
+    setup_steps=(
+        "Open the Zoom App Marketplace in a secure browser popup.",
+        "Authenticate with the Zoom admin account and complete the marketplace app authorization flow.",
+        "Return to SysAtlas and save the linked tenant after the external Zoom session succeeds.",
+    ),
+    security_notes=(
+        "Zoom OAuth authorization is handled in Zoom's hosted marketplace session.",
+        "No Zoom credentials are written into the repository or plain-text config files.",
+    ),
     fields=(
         IntegrationFieldDefinition(
             key="account_id",

@@ -76,10 +76,11 @@ def login(
 @router.get("/session", response_model=SessionResponse)
 def get_session(
     response: Response,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> SessionResponse:
     _apply_private_response_headers(response)
-    return SessionResponse(user=serialize_user(current_user))
+    return SessionResponse(user=serialize_user(current_user, db))
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

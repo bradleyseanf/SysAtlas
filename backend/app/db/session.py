@@ -44,10 +44,16 @@ def initialize_database() -> None:
             missing_columns.append("first_name")
         if "last_name" not in existing_columns:
             missing_columns.append("last_name")
+        if "profile_id" not in existing_columns:
+            missing_columns.append("profile_id")
 
         with engine.begin() as connection:
             for column_name in missing_columns:
-                connection.execute(text(f"ALTER TABLE users ADD COLUMN {column_name} VARCHAR(120)"))
+                column_type = "VARCHAR(36)" if column_name == "profile_id" else "VARCHAR(120)"
+                connection.execute(text(f"ALTER TABLE users ADD COLUMN {column_name} {column_type}"))
 
     with SessionLocal() as db:
+        from app.services.access_control import ensure_default_profiles
+
         migrate_legacy_system_secrets(db)
+        ensure_default_profiles(db)

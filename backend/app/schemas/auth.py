@@ -81,6 +81,12 @@ class LoginRequest(BaseModel):
         return value
 
 
+class AuthUserProfile(BaseModel):
+    id: str
+    name: str
+    description: str | None
+
+
 class AuthenticatedUser(BaseModel):
     id: str
     first_name: str | None
@@ -90,6 +96,8 @@ class AuthenticatedUser(BaseModel):
     is_active: bool
     is_superuser: bool
     role: str
+    profile: AuthUserProfile | None
+    permissions: list[str]
     created_at: datetime
 
 

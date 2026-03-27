@@ -7,6 +7,18 @@ definition = IntegrationProviderDefinition(
     description="Configure Microsoft Intune as a device inventory and policy source for corporate endpoints.",
     auth_strategy="oauth_client_credentials",
     supported_modules=("devices",),
+    launch_url="https://intune.microsoft.com/",
+    documentation_url="https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow",
+    launch_button_label="Launch Intune Session",
+    setup_steps=(
+        "Open the Microsoft Intune admin center in a secure browser popup.",
+        "Authenticate with an administrator account and approve the requested tenant access.",
+        "Return to SysAtlas and finish the link once the Microsoft session is complete.",
+    ),
+    security_notes=(
+        "Microsoft delegated sign-in should run in the external browser, not inside embedded form fields.",
+        "Consent state and any future secrets remain outside source control and local repo files.",
+    ),
     fields=(
         IntegrationFieldDefinition(
             key="tenant_id",

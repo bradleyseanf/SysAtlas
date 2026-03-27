@@ -21,3 +21,9 @@ class IntegrationProviderDefinition:
     auth_strategy: str
     supported_modules: tuple[str, ...]
     fields: tuple[IntegrationFieldDefinition, ...]
+    setup_mode: str = "external_browser"
+    launch_url: str = ""
+    documentation_url: str = ""
+    launch_button_label: str = "Launch Sign-In"
+    setup_steps: tuple[str, ...] = ()
+    security_notes: tuple[str, ...] = ()

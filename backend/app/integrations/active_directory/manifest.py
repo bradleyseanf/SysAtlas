@@ -7,6 +7,18 @@ definition = IntegrationProviderDefinition(
     description="Connect on-prem Active Directory for account lifecycle, group membership, and workstation associations.",
     auth_strategy="service_account",
     supported_modules=("users", "devices"),
+    launch_url="https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/get-started/virtual-dc/active-directory-domain-services-overview",
+    documentation_url="https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/get-started/virtual-dc/active-directory-domain-services-overview",
+    launch_button_label="Open Setup Guide",
+    setup_steps=(
+        "Open the Microsoft Active Directory setup guide in a secure browser window.",
+        "Complete the directory-side app and bind-account preparation outside SysAtlas.",
+        "Return here and mark the integration as connected once your directory session is ready.",
+    ),
+    security_notes=(
+        "Directory credentials should stay outside the repo and outside browser form fields.",
+        "SysAtlas stores any future connector secrets encrypted with the runtime Fernet key.",
+    ),
     fields=(
         IntegrationFieldDefinition(
             key="domain_controller",

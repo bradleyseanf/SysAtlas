@@ -7,6 +7,18 @@ definition = IntegrationProviderDefinition(
     description="Track Microsoft 365 license, mailbox, and productivity-service administration in the same control plane.",
     auth_strategy="oauth_client_credentials",
     supported_modules=("users",),
+    launch_url="https://admin.microsoft.com/",
+    documentation_url="https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow",
+    launch_button_label="Launch M365 Admin Session",
+    setup_steps=(
+        "Open Microsoft 365 admin in a secure browser popup.",
+        "Sign in with an approved tenant admin account and grant access for the tenant.",
+        "Return to SysAtlas and save the connection after the browser handoff is complete.",
+    ),
+    security_notes=(
+        "Microsoft 365 consent should happen in the Microsoft-hosted session flow.",
+        "Repo-tracked files never receive tenant tokens or secrets from this handoff.",
+    ),
     fields=(
         IntegrationFieldDefinition(
             key="tenant_id",

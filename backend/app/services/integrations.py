@@ -16,6 +16,8 @@ from app.schemas.integrations import (
 )
 from app.services.integration_secrets import decrypt_config, encrypt_config
 
+ACTIVE_CONNECTION_STATUSES = {"configured", "connected"}
+
 
 def serialize_provider(provider: IntegrationProviderDefinition) -> IntegrationProviderResponse:
     return IntegrationProviderResponse(
@@ -37,6 +39,12 @@ def serialize_provider(provider: IntegrationProviderDefinition) -> IntegrationPr
             )
             for field in provider.fields
         ],
+        setup_mode=provider.setup_mode,
+        launch_url=provider.launch_url,
+        documentation_url=provider.documentation_url or None,
+        launch_button_label=provider.launch_button_label,
+        setup_steps=list(provider.setup_steps),
+        security_notes=list(provider.security_notes),
     )
 
 
@@ -122,7 +130,7 @@ def upsert_connection(payload: IntegrationConnectionUpsertRequest, db: Session) 
             merged_config[field.key] = existing_decrypted[field.key]
             continue
 
-        if field.required:
+        if provider.setup_mode != "external_browser" and field.required:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"{field.label} is required.",

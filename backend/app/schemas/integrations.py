@@ -24,6 +24,12 @@ class IntegrationProviderResponse(BaseModel):
     auth_strategy: str
     supported_modules: list[str]
     fields: list[IntegrationFieldDefinitionResponse]
+    setup_mode: str
+    launch_url: str
+    documentation_url: str | None = None
+    launch_button_label: str
+    setup_steps: list[str]
+    security_notes: list[str]
 
 
 class IntegrationConnectionResponse(BaseModel):

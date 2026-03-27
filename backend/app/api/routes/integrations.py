@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_current_user
+from app.api.dependencies import require_permission
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.integrations import (
@@ -16,14 +16,14 @@ router = APIRouter(prefix="/integrations")
 
 
 @router.get("/catalog", response_model=IntegrationCatalogResponse)
-def get_integration_catalog(_: User = Depends(get_current_user)) -> IntegrationCatalogResponse:
+def get_integration_catalog(_: User = Depends(require_permission("settings.integrations.manage"))) -> IntegrationCatalogResponse:
     return catalog_response()
 
 
 @router.get("", response_model=IntegrationListResponse)
 def get_integration_connections(
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(require_permission("settings.integrations.manage")),
 ) -> IntegrationListResponse:
     return list_connections(db)
 
@@ -32,6 +32,6 @@ def get_integration_connections(
 def save_integration_connection(
     payload: IntegrationConnectionUpsertRequest,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(require_permission("settings.integrations.manage")),
 ) -> IntegrationConnectionMutationResponse:
     return upsert_connection(payload, db)

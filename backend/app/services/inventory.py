@@ -15,7 +15,7 @@ from app.schemas.inventory import (
     UserListResponse,
     UserListStats,
 )
-from app.services.integrations import serialize_connection
+from app.services.integrations import ACTIVE_CONNECTION_STATUSES, serialize_connection
 
 
 def _configured_source_options(db: Session, module_name: str) -> list[IntegrationOption]:
@@ -25,6 +25,8 @@ def _configured_source_options(db: Session, module_name: str) -> list[Integratio
     source_options: list[IntegrationOption] = []
     for connection in connections:
         serialized = serialize_connection(connection)
+        if serialized.status not in ACTIVE_CONNECTION_STATUSES:
+            continue
         if module_name not in serialized.supported_modules:
             continue
         source_options.append(IntegrationOption(id=serialized.provider, name=serialized.provider_name))

@@ -8,6 +8,7 @@ from app.core.config import settings
 from app.core.security import decode_access_token
 from app.db.session import get_db
 from app.models.user import User
+from app.services.access_control import user_has_any_permission, user_has_permission
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -46,3 +47,35 @@ def get_current_user(
         )
 
     return user
+
+
+def require_permission(permission_key: str):
+    def dependency(
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db),
+    ) -> User:
+        if not user_has_permission(current_user, permission_key, db):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have access to this area.",
+            )
+
+        return current_user
+
+    return dependency
+
+
+def require_any_permission(*permission_keys: str):
+    def dependency(
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db),
+    ) -> User:
+        if not user_has_any_permission(current_user, permission_keys, db):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have access to this area.",
+            )
+
+        return current_user
+
+    return dependency
