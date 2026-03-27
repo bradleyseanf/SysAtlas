@@ -220,7 +220,7 @@ export function IntegrationsPage() {
       ) : (
         <>
           <section className="atlas-panel overflow-hidden rounded-[28px]">
-            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+            <div className="flex items-center justify-between border-b border-[rgba(23,32,42,0.08)] px-6 py-4">
               <p className="text-sm font-semibold text-atlas">Configured Connections</p>
               <span className="atlas-pill rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]">
                 {configuredConnections.length} configured
@@ -243,7 +243,7 @@ export function IntegrationsPage() {
                   </thead>
                   <tbody>
                     {configuredConnections.map((connection) => (
-                      <tr key={connection.id} className="atlas-table-row border-t border-white/6 text-sm">
+                      <tr key={connection.id} className="atlas-table-row border-t border-[rgba(23,32,42,0.06)] text-sm">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <IntegrationLogo providerId={connection.provider} providerName={connection.provider_name} size="sm" />
@@ -272,7 +272,7 @@ export function IntegrationsPage() {
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(380px,0.95fr)]">
             <section className="atlas-panel overflow-hidden rounded-[28px]">
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 px-5 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[rgba(23,32,42,0.08)] px-5 py-4">
                 <div>
                   <p className="text-sm font-semibold text-atlas">Available Providers</p>
                   <p className="mt-1 text-xs uppercase tracking-[0.16em] text-atlas-dim">
@@ -297,7 +297,7 @@ export function IntegrationsPage() {
               ) : (
                 <div className="max-h-[620px] overflow-auto">
                   <table className="min-w-full table-fixed border-collapse text-left">
-                    <thead className="sticky top-0 z-10 bg-[rgba(248,245,240,0.96)] text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-atlas-dim">
+                    <thead className="sticky top-0 z-10 bg-[rgba(255,252,248,0.98)] text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-atlas-dim">
                       <tr>
                         <th className="w-14 px-4 py-3">Sel</th>
                         <th className="px-4 py-3">Integration</th>
@@ -317,9 +317,9 @@ export function IntegrationsPage() {
                             aria-selected={isSelected}
                             onClick={() => setSelectedProviderId(provider.id)}
                             onKeyDown={(event) => handleProviderRowKeyDown(event, provider.id)}
-                            className={`group cursor-pointer border-t border-white/6 text-sm outline-none transition ${
+                            className={`group cursor-pointer border-t border-[rgba(23,32,42,0.06)] text-sm outline-none transition ${
                               isSelected
-                                ? "bg-[rgba(23,32,42,0.05)] text-atlas"
+                                ? "bg-[rgba(201,74,99,0.08)] text-atlas"
                                 : "atlas-table-row hover:bg-[rgba(23,32,42,0.03)] focus-visible:bg-[rgba(23,32,42,0.04)]"
                             }`}
                           >
@@ -355,7 +355,7 @@ export function IntegrationsPage() {
                                   connection ? "text-[var(--atlas-success-text)]" : "text-atlas-muted"
                                 }`}
                               >
-                                <span className={`h-2 w-2 rounded-full ${connection ? "bg-[#70d89b]" : "bg-white/28"}`} />
+                                <span className={`h-2 w-2 rounded-full ${connection ? "bg-[#70d89b]" : "bg-[rgba(23,32,42,0.24)]"}`} />
                                 {connection ? "Configured" : "Ready"}
                               </span>
                             </td>
@@ -375,7 +375,7 @@ export function IntegrationsPage() {
                     <div className="flex items-start gap-4">
                       <IntegrationLogo providerId={selectedProvider.id} providerName={selectedProvider.name} size="lg" />
                       <div>
-                        <p className="text-atlas-dim text-[0.74rem] font-semibold uppercase tracking-[0.18em]">
+                        <p className="text-atlas-accent text-[0.74rem] font-semibold uppercase tracking-[0.18em]">
                           {selectedProvider.category}
                         </p>
                         <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-atlas">{selectedProvider.name}</h2>

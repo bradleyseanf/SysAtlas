@@ -8,7 +8,7 @@ const toneStyles: Record<NonNullable<StatusBadgeProps["tone"]>, string> = {
   positive: "border-[rgba(89,159,116,0.4)] bg-[rgba(52,102,73,0.22)] text-[var(--atlas-success-text)]",
   warning: "border-[rgba(170,126,55,0.45)] bg-[rgba(105,78,30,0.22)] text-[var(--atlas-warning-text)]",
   danger: "border-[rgba(185,79,104,0.18)] bg-[rgba(185,79,104,0.08)] text-[#8c3a52]",
-  info: "border-[rgba(36,48,61,0.12)] bg-[rgba(36,48,61,0.06)] text-[#24303d]",
+  info: "border-[rgba(201,74,99,0.2)] bg-[rgba(201,74,99,0.08)] text-[var(--atlas-accent-text)]",
 };
 
 export function StatusBadge({ label, tone = "neutral" }: StatusBadgeProps) {

@@ -5,16 +5,16 @@
 @layer base {
   :root {
     color: #17202a;
-    background: #f3efe8;
+    background: #f7f3ed;
     font-family: "IBM Plex Sans", system-ui, sans-serif;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    --atlas-bg: #f3efe8;
-    --atlas-surface: rgba(255, 255, 255, 0.88);
-    --atlas-surface-strong: rgba(255, 255, 255, 0.96);
-    --atlas-surface-soft: rgba(248, 245, 240, 0.92);
+    --atlas-bg: #f7f3ed;
+    --atlas-surface: rgba(255, 255, 255, 0.92);
+    --atlas-surface-strong: rgba(255, 255, 255, 0.98);
+    --atlas-surface-soft: rgba(251, 247, 242, 0.94);
     --atlas-input: #ffffff;
     --atlas-border: rgba(23, 32, 42, 0.08);
     --atlas-border-strong: rgba(23, 32, 42, 0.14);
@@ -22,20 +22,20 @@
     --atlas-text-soft: rgba(23, 32, 42, 0.84);
     --atlas-text-muted: rgba(23, 32, 42, 0.66);
     --atlas-text-dim: rgba(23, 32, 42, 0.46);
-    --atlas-accent: #24303d;
-    --atlas-accent-hover: #1c2631;
-    --atlas-accent-soft: rgba(36, 48, 61, 0.08);
-    --atlas-accent-border: rgba(36, 48, 61, 0.16);
-    --atlas-accent-border-strong: rgba(36, 48, 61, 0.24);
-    --atlas-accent-text: #24303d;
+    --atlas-accent: #c94a63;
+    --atlas-accent-hover: #d55d74;
+    --atlas-accent-soft: rgba(201, 74, 99, 0.1);
+    --atlas-accent-border: rgba(201, 74, 99, 0.22);
+    --atlas-accent-border-strong: rgba(201, 74, 99, 0.32);
+    --atlas-accent-text: #b43d55;
     --atlas-success-border: rgba(89, 159, 116, 0.4);
     --atlas-success-bg: rgba(52, 102, 73, 0.22);
     --atlas-success-text: #d7f2e1;
     --atlas-warning-border: rgba(170, 126, 55, 0.45);
     --atlas-warning-bg: rgba(105, 78, 30, 0.22);
     --atlas-warning-text: #f7e2b4;
-    --atlas-shadow-sm: 0 16px 32px rgba(18, 24, 32, 0.08);
-    --atlas-shadow-lg: 0 20px 44px rgba(18, 24, 32, 0.12);
+    --atlas-shadow-sm: 0 18px 36px rgba(18, 24, 32, 0.08);
+    --atlas-shadow-lg: 0 22px 46px rgba(18, 24, 32, 0.12);
   }
 
   * {
@@ -111,7 +111,7 @@
 
   .atlas-primary-button:hover {
     background: var(--atlas-accent-hover);
-    box-shadow: 0 16px 32px rgba(36, 48, 61, 0.16);
+    box-shadow: 0 18px 32px rgba(201, 74, 99, 0.18);
   }
 
   .atlas-primary-button:disabled {
@@ -131,7 +131,7 @@
   }
 
   .atlas-secondary-button:hover {
-    border-color: var(--atlas-accent-border);
+    border-color: var(--atlas-border-strong);
     background: rgba(23, 32, 42, 0.07);
   }
 
@@ -179,7 +179,7 @@
   .atlas-field:focus {
     border-color: var(--atlas-accent);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(36, 48, 61, 0.12);
+    box-shadow: 0 0 0 2px rgba(201, 74, 99, 0.14);
   }
 
   .atlas-error {
@@ -197,7 +197,7 @@
 
 @layer utilities {
   ::selection {
-    background: rgba(36, 48, 61, 0.16);
+    background: rgba(201, 74, 99, 0.18);
     color: #17202a;
   }
 

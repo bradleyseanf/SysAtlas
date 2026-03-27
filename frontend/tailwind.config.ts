@@ -6,11 +6,11 @@ const config: Config = {
     extend: {
       colors: {
         atlas: {
-          ink: "#F3EFE8",
+          ink: "#F7F3ED",
           surface: "#FFFFFF",
-          panel: "#F8F5F0",
-          glow: "#24303D",
-          gold: "#1C2631",
+          panel: "#FBF7F2",
+          glow: "#C94A63",
+          gold: "#D55D74",
           mist: "#17202A",
           sage: "#AAB2BA",
           line: "#D8D2C8",

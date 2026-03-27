@@ -66,7 +66,7 @@ export function DevicesPage() {
             />
           ) : (
             <section className="atlas-panel overflow-hidden rounded-[28px]">
-              <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+              <div className="flex items-center justify-between border-b border-[rgba(23,32,42,0.08)] px-6 py-4">
                 <div>
                   <p className="text-sm font-semibold text-atlas">All Devices</p>
                   <p className="mt-1 text-sm text-atlas-muted">
@@ -93,7 +93,7 @@ export function DevicesPage() {
                   </thead>
                   <tbody>
                     {data.items.map((item) => (
-                      <tr key={item.id} className="atlas-table-row border-t border-white/6 align-top text-sm">
+                      <tr key={item.id} className="atlas-table-row border-t border-[rgba(23,32,42,0.06)] align-top text-sm">
                         <td className="px-6 py-4">
                           <p className="font-semibold text-atlas">{item.device_name}</p>
                           <p className="mt-1 text-atlas-muted">
