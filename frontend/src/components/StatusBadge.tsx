@@ -4,11 +4,11 @@ type StatusBadgeProps = {
 };
 
 const toneStyles: Record<NonNullable<StatusBadgeProps["tone"]>, string> = {
-  neutral: "border-[#4b363d] bg-[rgba(255,255,255,0.04)] text-[#d8c1c7]",
-  positive: "border-[#49735a] bg-[rgba(44,82,57,0.2)] text-[#c8f0d4]",
-  warning: "border-[#7b5d2b] bg-[rgba(123,93,43,0.2)] text-[#f7dfaa]",
-  danger: "border-[#8f4250] bg-[rgba(143,66,80,0.22)] text-[#ffd4dc]",
-  info: "border-[#6d3d47] bg-[rgba(199,62,89,0.16)] text-[#f4c7d0]",
+  neutral: "border-[rgba(23,32,42,0.08)] bg-[rgba(23,32,42,0.04)] text-atlas-muted",
+  positive: "border-[rgba(89,159,116,0.4)] bg-[rgba(52,102,73,0.22)] text-[var(--atlas-success-text)]",
+  warning: "border-[rgba(170,126,55,0.45)] bg-[rgba(105,78,30,0.22)] text-[var(--atlas-warning-text)]",
+  danger: "border-[rgba(185,79,104,0.18)] bg-[rgba(185,79,104,0.08)] text-[#8c3a52]",
+  info: "border-[rgba(36,48,61,0.12)] bg-[rgba(36,48,61,0.06)] text-[#24303d]",
 };
 
 export function StatusBadge({ label, tone = "neutral" }: StatusBadgeProps) {

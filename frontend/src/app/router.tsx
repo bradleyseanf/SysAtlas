@@ -1,8 +1,7 @@
-import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
-import { api, ApiError } from "../lib/api";
+import { api } from "../lib/api";
 import { AccessPortal } from "../features/auth/AccessPortal";
 import { useAuth } from "../features/auth/AuthContext";
 import { AppShell } from "../features/layout/AppShell";
@@ -11,22 +10,19 @@ import { DevicesPage } from "../features/devices/DevicesPage";
 import { IntegrationsPage } from "../features/integrations/IntegrationsPage";
 
 export function AppRouter() {
-  const { session, signOut } = useAuth();
+  const { isReady, session } = useAuth();
   const setupStatusQuery = useQuery({
     queryKey: ["auth", "setup-status"],
     queryFn: api.getSetupStatus,
   });
 
-  useEffect(() => {
-    if (!session) {
-      return;
-    }
-
-    const error = setupStatusQuery.error;
-    if (error instanceof ApiError && error.status === 401) {
-      signOut();
-    }
-  }, [session, setupStatusQuery.error, signOut]);
+  if (!isReady) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--atlas-bg)] px-6 text-center text-sm text-atlas-muted">
+        Restoring your secure session...
+      </div>
+    );
+  }
 
   if (!session) {
     return (
