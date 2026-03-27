@@ -3,6 +3,8 @@ from app.integrations.intune import definition as intune
 from app.integrations.microsoft_365_admin_center import definition as microsoft_365_admin_center
 from app.integrations.microsoft_entra import definition as microsoft_entra
 from app.integrations.microsoft_exchange_admin_center import definition as microsoft_exchange_admin_center
+from app.integrations.microsoft_sharepoint import definition as microsoft_sharepoint
+from app.integrations.microsoft_teams import definition as microsoft_teams
 from app.integrations.types import IntegrationProviderDefinition
 from app.integrations.verizon_wireless import definition as verizon_wireless
 from app.integrations.zoho import definition as zoho
@@ -14,6 +16,8 @@ INTEGRATION_REGISTRY: tuple[IntegrationProviderDefinition, ...] = (
     microsoft_365_admin_center,
     microsoft_entra,
     microsoft_exchange_admin_center,
+    microsoft_sharepoint,
+    microsoft_teams,
     zoho,
     zoom,
     verizon_wireless,
