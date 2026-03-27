@@ -23,6 +23,11 @@ venv/
 .env.*
 !.env.example
 
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
 # OS / editors
 .DS_Store
 Thumbs.db

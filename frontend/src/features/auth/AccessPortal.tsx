@@ -40,7 +40,7 @@ const initialLoginForm: LoginFormState = {
 };
 
 function fieldClassName() {
-  return "w-full rounded-2xl border border-[#6d3d47] bg-[rgba(90,39,49,0.34)] px-4 py-3.5 text-[#f8edf0] outline-none transition placeholder:text-[#cfaeb6]/40 focus:border-[#d55472] focus:bg-[rgba(98,40,51,0.46)]";
+  return "w-full rounded-xl border border-white/10 bg-[#121821] px-4 py-3 text-[#f5f7fa] outline-none transition placeholder:text-white/30 focus:border-[#c94a63] focus:ring-2 focus:ring-[#c94a63]/15";
 }
 
 export function AccessPortal({ setupStatus, isLoading, error }: AccessPortalProps) {
@@ -109,10 +109,9 @@ export function AccessPortal({ setupStatus, isLoading, error }: AccessPortalProp
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#0f1114] text-atlas-mist">
-      <div className="pointer-events-none absolute inset-0 grid-sheen opacity-20" />
+    <div className="relative min-h-screen overflow-hidden bg-[#0c1015] text-[#f5f7fa]">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.04),transparent_22%),linear-gradient(180deg,rgba(15,17,20,0.92),rgba(11,12,15,0.98))]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(12,16,21,0.86),rgba(12,16,21,0.96))]" />
         <DotLottieReact
           src={loginWaves}
           autoplay
@@ -120,235 +119,184 @@ export function AccessPortal({ setupStatus, isLoading, error }: AccessPortalProp
           speed={0.75}
           useFrameInterpolation={false}
           renderConfig={{ autoResize: true, devicePixelRatio: 1.25 }}
-          className="absolute inset-[-18%] h-[136%] w-[136%] opacity-[0.18] mix-blend-screen"
+          className="absolute inset-[-18%] h-[136%] w-[136%] opacity-[0.16] mix-blend-screen"
         />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(15,17,20,0.12)_44%,rgba(11,12,15,0.54)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(12,16,21,0.08)_42%,rgba(12,16,21,0.52)_100%)]" />
       </div>
 
-      <main className="relative mx-auto flex min-h-screen max-w-6xl items-center px-6 py-12 lg:px-10">
-        <div className="grid w-full items-start gap-8 lg:grid-cols-[1fr_minmax(0,620px)]">
-          <section className="hidden lg:block">
-            <div className="max-w-xl rounded-[32px] border border-white/10 bg-[rgba(20,11,15,0.42)] p-8 backdrop-blur-[12px]">
-              <p className="text-[0.78rem] font-semibold uppercase tracking-[0.28em] text-[#d55472]">
-                {setupRequired ? "First Launch" : "Portal Access"}
-              </p>
-              <div className="mt-5 space-y-4">
-                <h1 className="text-5xl font-semibold leading-[0.96] tracking-[-0.05em] text-[#f8edf0]">
-                  SysAtlas
-                </h1>
-                <p className="max-w-xl text-base leading-8 text-[#f3dce1]/78">
-                  Systems Atlas (A.T.L.A.S) - Systems Automation Tool Linking All Systems. One control plane for user lifecycle,
-                  device management, and external platform orchestration.
-                </p>
-              </div>
+      <main className="relative mx-auto flex min-h-screen w-full max-w-5xl items-center justify-center px-6 py-10">
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#c94a63]/10 blur-[120px]" />
 
-              <div className="mt-8 grid gap-4">
-                <article className="rounded-3xl border border-white/10 bg-black/10 p-5">
-                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[#cf6a7f]">Users</p>
-                  <p className="mt-2 text-sm leading-7 text-[#f3dce1]/72">
-                    Directory-backed user inventory, onboarding, and offboarding workflows with source-aware empty states.
-                  </p>
-                </article>
-                <article className="rounded-3xl border border-white/10 bg-black/10 p-5">
-                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[#cf6a7f]">Devices</p>
-                  <p className="mt-2 text-sm leading-7 text-[#f3dce1]/72">
-                    Endpoint inventory and compliance views that feel like real admin tooling rather than a marketing mockup.
-                  </p>
-                </article>
-                <article className="rounded-3xl border border-white/10 bg-black/10 p-5">
-                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[#cf6a7f]">Integrations</p>
-                  <p className="mt-2 text-sm leading-7 text-[#f3dce1]/72">
-                    AD, Intune, Microsoft 365, Entra, Exchange, Zoho, Zoom, and Verizon setup with encrypted database-backed secrets.
-                  </p>
-                </article>
-              </div>
+        <section
+          className={`relative w-full rounded-[28px] border border-white/10 bg-[#11161d]/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.38)] backdrop-blur sm:p-8 ${
+            setupRequired ? "max-w-2xl" : "max-w-md"
+          }`}
+        >
+          <div className="space-y-1.5">
+            <h1 className="text-3xl font-semibold tracking-[-0.04em] text-white">SysAtlas</h1>
+            <p className="text-sm leading-6 text-white/60">
+              {setupRequired
+                ? "Create the first super admin account to unlock the workspace."
+                : "Systems Atlas (A.T.L.A.S.) - Systems Automation Tool Linking All Systems."}
+            </p>
+            {setupRequired ? (
+              <p className="pt-1 text-xs uppercase tracking-[0.16em] text-white/45">Create administrator account</p>
+            ) : null}
+          </div>
+
+          {isLoading ? (
+            <div className="mt-6 rounded-xl border border-white/10 bg-black/10 px-4 py-6 text-center text-sm text-white/60">
+              Checking whether this instance has been initialized...
             </div>
-          </section>
-
-          <section className="w-full rounded-[32px] border border-white/20 bg-[rgba(29,16,21,0.78)] p-8 shadow-[0_28px_80px_rgba(18,6,10,0.52)] backdrop-blur-[18px] lg:p-10">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-[0.78rem] font-semibold uppercase tracking-[0.28em] text-[#d55472]">
-                  {setupRequired ? "Initialize Workspace" : "Portal Access"}
-                </p>
-                <div className="mt-5 space-y-4">
-                  <h2 className="text-4xl font-semibold leading-[1.02] tracking-[-0.04em] text-[#f8edf0] md:text-[3.2rem]">
-                    {setupRequired ? "Welcome to SysAtlas, let's get started." : "Welcome back."}
-                  </h2>
-                  <p className="max-w-2xl text-base leading-7 text-[#f3dce1]/78 md:text-lg">
-                    {setupRequired
-                      ? "Create the first super admin account and unlock the main workspace."
-                      : "Sign in with your SysAtlas account to continue into the integrated admin console."}
-                  </p>
+          ) : (
+            <div className="mt-6">
+              {error ? (
+                <div className="mb-4 rounded-xl border border-[#c94a63]/35 bg-[#c94a63]/10 px-4 py-3 text-sm leading-6 text-[#ffdfe5]">
+                  {error}
                 </div>
-              </div>
-              <span className="rounded-full border border-[#df6f87]/25 bg-[rgba(215,84,114,0.12)] px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[#f2c8d1]">
-                {setupStatus ? `${setupStatus.user_count} account${setupStatus.user_count === 1 ? "" : "s"} configured` : "Checking instance"}
-              </span>
-            </div>
+              ) : null}
 
-            {isLoading ? (
-              <div className="mt-10 rounded-3xl border border-white/10 bg-black/10 px-5 py-8 text-center text-sm text-[#f3dce1]/72">
-                Checking whether this instance has been initialized...
-              </div>
-            ) : (
-              <div className="mt-10">
-                {error ? (
-                  <div className="mb-5 rounded-3xl border border-[#d55472]/30 bg-[rgba(123,30,52,0.18)] px-4 py-3 text-sm leading-6 text-[#fde6eb]">
-                    {error}
-                  </div>
-                ) : null}
+              {formError ? (
+                <div className="mb-4 rounded-xl border border-[#c94a63]/35 bg-[#c94a63]/10 px-4 py-3 text-sm leading-6 text-[#ffdfe5]">
+                  {formError}
+                </div>
+              ) : null}
 
-                {formError ? (
-                  <div className="mb-5 rounded-3xl border border-[#d55472]/30 bg-[rgba(123,30,52,0.18)] px-4 py-3 text-sm leading-6 text-[#fde6eb]">
-                    {formError}
-                  </div>
-                ) : null}
-
-                {setupRequired ? (
-                  <form className="space-y-5" onSubmit={handleSetupSubmit}>
-                    <div className="grid gap-5 md:grid-cols-2">
-                      <label className="block">
-                        <span className="mb-2 block text-[0.78rem] font-semibold uppercase tracking-[0.18em] text-[#cf6a7f]">
-                          First Name
-                        </span>
-                        <input
-                          name="first_name"
-                          type="text"
-                          value={setupForm.first_name}
-                          onChange={handleSetupFieldChange}
-                          placeholder="Avery"
-                          className={fieldClassName()}
-                          required
-                        />
-                      </label>
-
-                      <label className="block">
-                        <span className="mb-2 block text-[0.78rem] font-semibold uppercase tracking-[0.18em] text-[#cf6a7f]">
-                          Last Name
-                        </span>
-                        <input
-                          name="last_name"
-                          type="text"
-                          value={setupForm.last_name}
-                          onChange={handleSetupFieldChange}
-                          placeholder="Morgan"
-                          className={fieldClassName()}
-                          required
-                        />
-                      </label>
-                    </div>
-
+              {setupRequired ? (
+                <form className="space-y-4" onSubmit={handleSetupSubmit}>
+                  <div className="grid gap-4 md:grid-cols-2">
                     <label className="block">
-                      <span className="mb-2 block text-[0.78rem] font-semibold uppercase tracking-[0.18em] text-[#cf6a7f]">
-                        Email
+                      <span className="mb-2 block text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white/55">
+                        First Name
                       </span>
                       <input
-                        name="email"
-                        type="email"
-                        value={setupForm.email}
+                        name="first_name"
+                        type="text"
+                        value={setupForm.first_name}
                         onChange={handleSetupFieldChange}
-                        placeholder="admin@your-company.com"
+                        placeholder="Avery"
                         className={fieldClassName()}
                         required
                       />
                     </label>
 
-                    <div className="grid gap-5 md:grid-cols-2">
-                      <label className="block">
-                        <span className="mb-2 block text-[0.78rem] font-semibold uppercase tracking-[0.18em] text-[#cf6a7f]">
-                          Password
-                        </span>
-                        <input
-                          name="password"
-                          type="password"
-                          value={setupForm.password}
-                          onChange={handleSetupFieldChange}
-                          placeholder="At least 12 characters"
-                          className={fieldClassName()}
-                          minLength={12}
-                          required
-                        />
-                      </label>
-
-                      <label className="block">
-                        <span className="mb-2 block text-[0.78rem] font-semibold uppercase tracking-[0.18em] text-[#cf6a7f]">
-                          Confirm Password
-                        </span>
-                        <input
-                          name="confirm_password"
-                          type="password"
-                          value={setupForm.confirm_password}
-                          onChange={handleSetupFieldChange}
-                          placeholder="Repeat your password"
-                          className={fieldClassName()}
-                          minLength={12}
-                          required
-                        />
-                      </label>
-                    </div>
-
-                    <div className="rounded-3xl border border-white/10 bg-black/10 px-4 py-3 text-sm leading-6 text-[#f3dce1]/72">
-                      This account becomes the first SysAtlas super admin and receives full system permissions.
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={setupMutation.isPending}
-                      className="w-full rounded-2xl border border-[#df6f87]/35 bg-[#c73e59] px-4 py-3.5 text-base font-semibold tracking-[0.08em] text-[#fff7f8] transition hover:bg-[#d55472] hover:shadow-[0_18px_40px_rgba(199,62,89,0.32)] disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      {setupMutation.isPending ? "Creating Super Admin..." : "Initialize SysAtlas"}
-                    </button>
-                  </form>
-                ) : (
-                  <form className="space-y-5" onSubmit={handleLoginSubmit}>
                     <label className="block">
-                      <span className="mb-2 block text-[0.78rem] font-semibold uppercase tracking-[0.18em] text-[#cf6a7f]">
-                        Email
+                      <span className="mb-2 block text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white/55">
+                        Last Name
                       </span>
                       <input
-                        name="email"
-                        type="email"
-                        value={loginForm.email}
-                        onChange={handleLoginFieldChange}
-                        placeholder="Enter your email"
+                        name="last_name"
+                        type="text"
+                        value={setupForm.last_name}
+                        onChange={handleSetupFieldChange}
+                        placeholder="Morgan"
                         className={fieldClassName()}
                         required
                       />
                     </label>
+                  </div>
 
+                  <label className="block">
+                    <span className="mb-2 block text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white/55">
+                      Email
+                    </span>
+                    <input
+                      name="email"
+                      type="email"
+                      value={setupForm.email}
+                      onChange={handleSetupFieldChange}
+                      placeholder="admin@your-company.com"
+                      className={fieldClassName()}
+                      required
+                    />
+                  </label>
+
+                  <div className="grid gap-4 md:grid-cols-2">
                     <label className="block">
-                      <span className="mb-2 block text-[0.78rem] font-semibold uppercase tracking-[0.18em] text-[#cf6a7f]">
+                      <span className="mb-2 block text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white/55">
                         Password
                       </span>
                       <input
                         name="password"
                         type="password"
-                        value={loginForm.password}
-                        onChange={handleLoginFieldChange}
-                        placeholder="Enter your password"
+                        value={setupForm.password}
+                        onChange={handleSetupFieldChange}
+                        placeholder="At least 12 characters"
                         className={fieldClassName()}
+                        minLength={12}
                         required
                       />
                     </label>
 
-                    <div className="rounded-3xl border border-white/10 bg-black/10 px-4 py-3 text-sm leading-6 text-[#f3dce1]/72">
-                      Fresh instances are redirected into setup automatically. Integration credentials stay separate and are stored encrypted in the database.
-                    </div>
+                    <label className="block">
+                      <span className="mb-2 block text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white/55">
+                        Confirm Password
+                      </span>
+                      <input
+                        name="confirm_password"
+                        type="password"
+                        value={setupForm.confirm_password}
+                        onChange={handleSetupFieldChange}
+                        placeholder="Repeat your password"
+                        className={fieldClassName()}
+                        minLength={12}
+                        required
+                      />
+                    </label>
+                  </div>
 
-                    <button
-                      type="submit"
-                      disabled={loginMutation.isPending}
-                      className="w-full rounded-2xl border border-[#df6f87]/35 bg-[#c73e59] px-4 py-3.5 text-base font-semibold tracking-[0.08em] text-[#fff7f8] transition hover:bg-[#d55472] hover:shadow-[0_18px_40px_rgba(199,62,89,0.32)] disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      {loginMutation.isPending ? "Signing In..." : "Sign In"}
-                    </button>
-                  </form>
-                )}
-              </div>
-            )}
-          </section>
-        </div>
+                  <button
+                    type="submit"
+                    disabled={setupMutation.isPending}
+                    className="w-full rounded-xl bg-[#c94a63] px-4 py-3 text-sm font-semibold uppercase tracking-[0.08em] text-white transition hover:bg-[#d55d74] disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {setupMutation.isPending ? "Creating Super Admin..." : "Initialize SysAtlas"}
+                  </button>
+                </form>
+              ) : (
+                <form className="space-y-4" onSubmit={handleLoginSubmit}>
+                  <label className="block">
+                    <span className="mb-2 block text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white/55">
+                      Email
+                    </span>
+                    <input
+                      name="email"
+                      type="email"
+                      value={loginForm.email}
+                      onChange={handleLoginFieldChange}
+                      placeholder="Enter your email"
+                      className={fieldClassName()}
+                      required
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white/55">
+                      Password
+                    </span>
+                    <input
+                      name="password"
+                      type="password"
+                      value={loginForm.password}
+                      onChange={handleLoginFieldChange}
+                      placeholder="Enter your password"
+                      className={fieldClassName()}
+                      required
+                    />
+                  </label>
+
+                  <button
+                    type="submit"
+                    disabled={loginMutation.isPending}
+                    className="w-full rounded-xl bg-[#c94a63] px-4 py-3 text-sm font-semibold uppercase tracking-[0.08em] text-white transition hover:bg-[#d55d74] disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {loginMutation.isPending ? "Signing In..." : "Sign In"}
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
+        </section>
       </main>
     </div>
   );
