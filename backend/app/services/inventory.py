@@ -72,6 +72,7 @@ def list_managed_users(db: Session) -> UserListResponse:
                 lifecycle_state=item.lifecycle_state,
                 account_status=item.account_status,
                 device_count=item.device_count,
+                created_at=item.created_at,
                 last_activity_at=item.last_activity_at,
                 last_synced_at=item.last_synced_at,
             )
@@ -105,6 +106,7 @@ def list_managed_devices(db: Session) -> DeviceListResponse:
                 management_state=item.management_state,
                 primary_user_email=item.primary_user_email,
                 lifecycle_state=item.lifecycle_state,
+                created_at=item.created_at,
                 last_check_in_at=item.last_check_in_at,
             )
             for item in items

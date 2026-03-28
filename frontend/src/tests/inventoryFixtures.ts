@@ -16,6 +16,7 @@ const testUsers: UserListItem[] = [
     lifecycle_state: "active",
     account_status: "active",
     device_count: 2,
+    created_at: "2026-03-21T14:05:00Z",
     last_activity_at: "2026-03-27T13:42:00Z",
     last_synced_at: "2026-03-27T13:55:00Z",
   },
@@ -29,6 +30,7 @@ const testUsers: UserListItem[] = [
     lifecycle_state: "active",
     account_status: "active",
     device_count: 1,
+    created_at: "2026-03-22T10:30:00Z",
     last_activity_at: "2026-03-27T12:18:00Z",
     last_synced_at: "2026-03-27T13:55:00Z",
   },
@@ -42,6 +44,7 @@ const testUsers: UserListItem[] = [
     lifecycle_state: "offboarding",
     account_status: "disabled",
     device_count: 3,
+    created_at: "2026-03-24T09:15:00Z",
     last_activity_at: "2026-03-24T17:05:00Z",
     last_synced_at: "2026-03-27T13:55:00Z",
   },
@@ -55,6 +58,7 @@ const testUsers: UserListItem[] = [
     lifecycle_state: "active",
     account_status: "active",
     device_count: 2,
+    created_at: "2026-03-25T11:20:00Z",
     last_activity_at: "2026-03-27T11:09:00Z",
     last_synced_at: "2026-03-27T13:55:00Z",
   },
@@ -68,6 +72,7 @@ const testUsers: UserListItem[] = [
     lifecycle_state: "leave",
     account_status: "disabled",
     device_count: 0,
+    created_at: "2026-03-27T08:40:00Z",
     last_activity_at: "2026-03-20T09:30:00Z",
     last_synced_at: "2026-03-27T13:55:00Z",
   },
@@ -87,6 +92,7 @@ const testDevices: DeviceListItem[] = [
     management_state: "managed",
     primary_user_email: "jordan.lee+test@sysatlas.dev",
     lifecycle_state: "active",
+    created_at: "2026-03-21T16:25:00Z",
     last_check_in_at: "2026-03-27T13:36:00Z",
   },
   {
@@ -102,6 +108,7 @@ const testDevices: DeviceListItem[] = [
     management_state: "managed",
     primary_user_email: "avery.brooks+test@sysatlas.dev",
     lifecycle_state: "active",
+    created_at: "2026-03-22T13:10:00Z",
     last_check_in_at: "2026-03-27T12:52:00Z",
   },
   {
@@ -117,6 +124,7 @@ const testDevices: DeviceListItem[] = [
     management_state: "managed",
     primary_user_email: "morgan.patel+test@sysatlas.dev",
     lifecycle_state: "active",
+    created_at: "2026-03-24T15:05:00Z",
     last_check_in_at: "2026-03-26T21:14:00Z",
   },
   {
@@ -132,6 +140,7 @@ const testDevices: DeviceListItem[] = [
     management_state: "pending",
     primary_user_email: "taylor.nguyen+test@sysatlas.dev",
     lifecycle_state: "staging",
+    created_at: "2026-03-25T17:40:00Z",
     last_check_in_at: "2026-03-25T16:48:00Z",
   },
   {
@@ -147,6 +156,7 @@ const testDevices: DeviceListItem[] = [
     management_state: "managed",
     primary_user_email: "jordan.lee+test@sysatlas.dev",
     lifecycle_state: "active",
+    created_at: "2026-03-26T09:50:00Z",
     last_check_in_at: "2026-03-27T08:07:00Z",
   },
   {
@@ -162,6 +172,7 @@ const testDevices: DeviceListItem[] = [
     management_state: "managed",
     primary_user_email: null,
     lifecycle_state: "active",
+    created_at: "2026-03-27T07:35:00Z",
     last_check_in_at: "2026-03-27T10:24:00Z",
   },
 ];

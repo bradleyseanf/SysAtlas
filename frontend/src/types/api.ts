@@ -207,6 +207,7 @@ export type UserListItem = {
   lifecycle_state: string;
   account_status: string;
   device_count: number;
+  created_at: string;
   last_activity_at: string | null;
   last_synced_at: string | null;
 };
@@ -235,6 +236,7 @@ export type DeviceListItem = {
   management_state: string;
   primary_user_email: string | null;
   lifecycle_state: string;
+  created_at: string;
   last_check_in_at: string | null;
 };
 

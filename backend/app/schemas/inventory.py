@@ -26,6 +26,7 @@ class UserListItem(BaseModel):
     lifecycle_state: str
     account_status: str
     device_count: int
+    created_at: datetime
     last_activity_at: datetime | None
     last_synced_at: datetime | None
 
@@ -56,6 +57,7 @@ class DeviceListItem(BaseModel):
     management_state: str
     primary_user_email: str | None
     lifecycle_state: str
+    created_at: datetime
     last_check_in_at: datetime | None
 
 
