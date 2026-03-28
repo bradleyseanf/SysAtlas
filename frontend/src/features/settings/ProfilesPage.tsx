@@ -11,6 +11,8 @@ import {
   CFormCheck,
   CFormInput,
   CFormLabel,
+  CListGroup,
+  CListGroupItem,
   CRow,
   CSpinner,
 } from "@coreui/react";
@@ -20,10 +22,11 @@ import { api } from "../../lib/api";
 import type { AccessProfile, PermissionDefinition } from "../../types/api";
 import { useAuth } from "../auth/AuthContext";
 
+const NEW_PROFILE_ID = "__new__";
+
 type ProfileFormState = {
   id?: string;
   name: string;
-  description: string;
   permissions: string[];
 };
 
@@ -31,7 +34,6 @@ function buildProfileForm(profile?: AccessProfile): ProfileFormState {
   return {
     id: profile?.id,
     name: profile?.name ?? "",
-    description: profile?.description ?? "",
     permissions: profile?.permissions ?? [],
   };
 }
@@ -49,15 +51,20 @@ export function ProfilesPage() {
   const [noticeTone, setNoticeTone] = useState<"info" | "danger">("info");
 
   const profiles = accessControlQuery.data?.profiles ?? [];
-  const selectedProfile = profiles.find((profile) => profile.id === selectedProfileId) ?? profiles[0];
+  const defaultSelectedProfile = profiles.find((profile) => !profile.is_system_profile) ?? profiles[0];
+  const selectedProfile =
+    selectedProfileId && selectedProfileId !== NEW_PROFILE_ID
+      ? profiles.find((profile) => profile.id === selectedProfileId)
+      : undefined;
+  const isLockedProfile = Boolean(formState.id && selectedProfile?.is_system_profile);
 
   useEffect(() => {
     if (!profiles.length) {
       return;
     }
 
-    setSelectedProfileId((current) => current || profiles[0]?.id || "");
-  }, [profiles]);
+    setSelectedProfileId((current) => current || defaultSelectedProfile?.id || "");
+  }, [defaultSelectedProfile, profiles]);
 
   useEffect(() => {
     if (!selectedProfile) {
@@ -92,6 +99,10 @@ export function ProfilesPage() {
   }
 
   function togglePermission(permissionKey: string) {
+    if (isLockedProfile) {
+      return;
+    }
+
     setFormState((current) => ({
       ...current,
       permissions: current.permissions.includes(permissionKey)
@@ -102,8 +113,16 @@ export function ProfilesPage() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (isLockedProfile) {
+      return;
+    }
+
     setNotice("");
-    saveProfileMutation.mutate(formState);
+    saveProfileMutation.mutate({
+      ...formState,
+      description: "",
+    });
   }
 
   return (
@@ -137,7 +156,7 @@ export function ProfilesPage() {
                   color="secondary"
                   variant="outline"
                   onClick={() => {
-                    setSelectedProfileId("");
+                    setSelectedProfileId(NEW_PROFILE_ID);
                     setFormState(buildProfileForm());
                     setNotice("");
                     setNoticeTone("info");
@@ -148,39 +167,30 @@ export function ProfilesPage() {
               </CCardHeader>
 
               <CCardBody className="p-0">
-                <div className="list-group list-group-flush">
+                <CListGroup flush>
                   {profiles.map((profile) => {
-                    const isSelected = profile.id === (selectedProfileId || selectedProfile?.id);
+                    const isSelected = profile.id === selectedProfile?.id;
 
                     return (
-                      <button
+                      <CListGroupItem
                         key={profile.id}
-                        type="button"
+                        as="button"
+                        active={isSelected}
                         onClick={() => {
                           setSelectedProfileId(profile.id);
                           setNotice("");
                           setNoticeTone("info");
                         }}
-                        className={`list-group-item list-group-item-action text-start ${isSelected ? "active" : ""}`}
+                        className="text-start"
                       >
-                        <div className="d-flex align-items-start justify-content-between gap-3">
-                          <div>
-                            <div className="fw-semibold">{profile.name}</div>
-                            <div className={`small ${isSelected ? "text-white-50" : "text-body-secondary"}`}>
-                              {profile.description ?? "No description set."}
-                            </div>
-                          </div>
-                          {profile.is_system_profile ? <StatusBadge label="System" tone="info" /> : null}
+                        <div className="d-flex align-items-center justify-content-between gap-3">
+                          <div className="fw-semibold">{profile.name}</div>
+                          {profile.is_system_profile ? <StatusBadge label="Locked" tone="info" /> : null}
                         </div>
-
-                        <div className="d-flex flex-wrap gap-2 mt-3">
-                          <StatusBadge label={`${profile.permissions.length} permissions`} />
-                          <StatusBadge label={`${profile.assigned_user_count} users`} />
-                        </div>
-                      </button>
+                      </CListGroupItem>
                     );
                   })}
-                </div>
+                </CListGroup>
               </CCardBody>
             </CCard>
           </CCol>
@@ -190,12 +200,14 @@ export function ProfilesPage() {
               <CCardHeader className="d-flex flex-wrap align-items-start justify-content-between gap-3">
                 <div>
                   <p className="mb-1 small fw-semibold text-body-secondary text-uppercase">Access Design</p>
-                  <h2 className="h4 mb-2">{formState.id ? "Edit Profile" : "Create Profile"}</h2>
+                  <h2 className="h4 mb-2">{isLockedProfile ? "Locked Profile" : formState.id ? "Edit Profile" : "Create Profile"}</h2>
                   <p className="mb-0 text-body-secondary">
-                    Keep profiles small and clear so admins can assign them without guessing what each person will see.
+                    {isLockedProfile
+                      ? "Super Admin stays attached to the instance creator and always keeps full access."
+                      : "Adjust the access footprint here, then assign the profile from Settings / Users."}
                   </p>
                 </div>
-                {formState.id && selectedProfile?.is_system_profile ? <StatusBadge label="System profile" tone="info" /> : null}
+                {isLockedProfile ? <StatusBadge label="Locked" tone="info" /> : null}
               </CCardHeader>
 
               <CCardBody>
@@ -205,26 +217,23 @@ export function ProfilesPage() {
                   </CAlert>
                 ) : null}
 
+                {isLockedProfile ? (
+                  <CAlert color="secondary" className="mb-4">
+                    Super Admin is reserved for the first user who initializes the instance.
+                  </CAlert>
+                ) : null}
+
                 <form onSubmit={handleSubmit}>
                   <CRow className="g-3">
-                    <CCol lg={5}>
+                    <CCol lg={6}>
                       <CFormLabel htmlFor="profile-name">Profile Name</CFormLabel>
                       <CFormInput
                         id="profile-name"
                         value={formState.name}
                         onChange={(event) => setFormState((current) => ({ ...current, name: event.target.value }))}
-                        placeholder="Identity Operators"
+                        placeholder="Operations"
+                        disabled={isLockedProfile}
                         required
-                      />
-                    </CCol>
-
-                    <CCol lg={7}>
-                      <CFormLabel htmlFor="profile-description">Description</CFormLabel>
-                      <CFormInput
-                        id="profile-description"
-                        value={formState.description}
-                        onChange={(event) => setFormState((current) => ({ ...current, description: event.target.value }))}
-                        placeholder="Focused access for identity workflows and staged library review."
                       />
                     </CCol>
                   </CRow>
@@ -248,6 +257,7 @@ export function ProfilesPage() {
                                     <CFormCheck
                                       id={`permission-${permission.key}`}
                                       checked={isChecked}
+                                      disabled={isLockedProfile}
                                       onChange={() => togglePermission(permission.key)}
                                       label={permission.label}
                                     />
@@ -262,11 +272,13 @@ export function ProfilesPage() {
                     ))}
                   </div>
 
-                  <div className="mt-4">
-                    <CButton type="submit" color="primary" disabled={saveProfileMutation.isPending}>
-                      {saveProfileMutation.isPending ? "Saving Profile..." : formState.id ? "Update Profile" : "Create Profile"}
-                    </CButton>
-                  </div>
+                  {!isLockedProfile ? (
+                    <div className="mt-4">
+                      <CButton type="submit" color="primary" disabled={saveProfileMutation.isPending}>
+                        {saveProfileMutation.isPending ? "Saving Profile..." : formState.id ? "Update Profile" : "Create Profile"}
+                      </CButton>
+                    </div>
+                  ) : null}
                 </form>
               </CCardBody>
             </CCard>

@@ -11,7 +11,10 @@ import {
   CFormInput,
   CFormLabel,
   CFormSelect,
+  CFormText,
   CFormSwitch,
+  CListGroup,
+  CListGroupItem,
   CRow,
   CSpinner,
 } from "@coreui/react";
@@ -20,6 +23,8 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { api } from "../../lib/api";
 import type { AccessUser } from "../../types/api";
 import { useAuth } from "../auth/AuthContext";
+
+const NEW_USER_ID = "__new__";
 
 type AccessUserFormState = {
   id?: string;
@@ -59,8 +64,13 @@ export function AccessUsersPage() {
 
   const users = accessControlQuery.data?.users ?? [];
   const profiles = accessControlQuery.data?.profiles ?? [];
-  const selectedUser = users.find((user) => user.id === selectedUserId) ?? users[0];
-  const platformAdminProfile = profiles.find((profile) => profile.name === "Platform Admin");
+  const selectedUser =
+    selectedUserId && selectedUserId !== NEW_USER_ID
+      ? users.find((user) => user.id === selectedUserId)
+      : undefined;
+  const superAdminProfile = profiles.find((profile) => profile.is_system_profile);
+  const assignableProfiles = profiles.filter((profile) => !profile.is_system_profile);
+  const selectedProfileValue = formState.is_superuser ? (superAdminProfile?.id ?? formState.profile_id) : formState.profile_id;
 
   useEffect(() => {
     if (!users.length) {
@@ -138,7 +148,7 @@ export function AccessUsersPage() {
                   color="secondary"
                   variant="outline"
                   onClick={() => {
-                    setSelectedUserId("");
+                    setSelectedUserId(NEW_USER_ID);
                     setFormState(buildAccessUserForm());
                     setNotice("");
                     setNoticeTone("info");
@@ -149,20 +159,21 @@ export function AccessUsersPage() {
               </CCardHeader>
 
               <CCardBody className="p-0">
-                <div className="list-group list-group-flush">
+                <CListGroup flush>
                   {users.map((user) => {
-                    const isSelected = user.id === (selectedUserId || selectedUser?.id);
+                    const isSelected = user.id === selectedUser?.id;
 
                     return (
-                      <button
+                      <CListGroupItem
                         key={user.id}
-                        type="button"
+                        as="button"
+                        active={isSelected}
                         onClick={() => {
                           setSelectedUserId(user.id);
                           setNotice("");
                           setNoticeTone("info");
                         }}
-                        className={`list-group-item list-group-item-action text-start ${isSelected ? "active" : ""}`}
+                        className="text-start"
                       >
                         <div className="d-flex flex-wrap align-items-start justify-content-between gap-3">
                           <div>
@@ -178,10 +189,10 @@ export function AccessUsersPage() {
                             <StatusBadge label={user.is_active ? "Active" : "Disabled"} tone={user.is_active ? "positive" : "danger"} />
                           </div>
                         </div>
-                      </button>
+                      </CListGroupItem>
                     );
                   })}
-                </div>
+                </CListGroup>
               </CCardBody>
             </CCard>
           </CCol>
@@ -243,17 +254,31 @@ export function AccessUsersPage() {
                       <CFormLabel htmlFor="access-user-profile">Access Profile</CFormLabel>
                       <CFormSelect
                         id="access-user-profile"
-                        value={formState.profile_id}
+                        value={selectedProfileValue}
                         onChange={(event) => setFormState((current) => ({ ...current, profile_id: event.target.value }))}
+                        disabled={formState.is_superuser}
                         required
                       >
-                        <option value="">Select a profile</option>
-                        {profiles.map((profile) => (
-                          <option key={profile.id} value={profile.id}>
-                            {profile.name}
-                          </option>
-                        ))}
+                        {formState.is_superuser ? (
+                          superAdminProfile ? (
+                            <option value={superAdminProfile.id}>{superAdminProfile.name}</option>
+                          ) : (
+                            <option value="">Super Admin</option>
+                          )
+                        ) : (
+                          <>
+                            <option value="">Select a profile</option>
+                            {assignableProfiles.map((profile) => (
+                              <option key={profile.id} value={profile.id}>
+                                {profile.name}
+                              </option>
+                            ))}
+                          </>
+                        )}
                       </CFormSelect>
+                      {formState.is_superuser ? (
+                        <CFormText>Reserved for the first user who initialized this SysAtlas instance.</CFormText>
+                      ) : null}
                     </CCol>
 
                     <CCol md={6}>
@@ -271,7 +296,7 @@ export function AccessUsersPage() {
                   </CRow>
 
                   <CRow className="g-4 mt-1">
-                    <CCol md={6}>
+                    <CCol md={formState.is_superuser ? 6 : 12}>
                       <CCard className="h-100 border-0 bg-body-tertiary">
                         <CCardBody>
                           <div className="d-flex align-items-start justify-content-between gap-3">
@@ -288,28 +313,18 @@ export function AccessUsersPage() {
                       </CCard>
                     </CCol>
 
-                    <CCol md={6}>
-                      <CCard className="h-100 border-0 bg-body-tertiary">
-                        <CCardBody>
-                          <div className="d-flex align-items-start justify-content-between gap-3">
-                            <div>
-                              <div className="fw-semibold">Super Admin</div>
-                              <div className="small text-body-secondary">Gains full SysAtlas access across all routes.</div>
+                    {formState.is_superuser ? (
+                      <CCol md={6}>
+                        <CCard className="h-100 border-0 bg-body-tertiary">
+                          <CCardBody>
+                            <div className="fw-semibold">Super Admin</div>
+                            <div className="small text-body-secondary">
+                              Locked to the first user who created this SysAtlas instance.
                             </div>
-                            <CFormSwitch
-                              checked={formState.is_superuser}
-                              onChange={(event) =>
-                                setFormState((current) => ({
-                                  ...current,
-                                  is_superuser: event.target.checked,
-                                  profile_id: event.target.checked && !current.profile_id ? (platformAdminProfile?.id ?? current.profile_id) : current.profile_id,
-                                }))
-                              }
-                            />
-                          </div>
-                        </CCardBody>
-                      </CCard>
-                    </CCol>
+                          </CCardBody>
+                        </CCard>
+                      </CCol>
+                    ) : null}
                   </CRow>
 
                   <div className="mt-4">
