@@ -14,7 +14,6 @@ import {
   cilSettings,
   cilSpeedometer,
   cilSun,
-  cilUser,
 } from "@coreui/icons";
 import {
   CBadge,
@@ -68,12 +67,6 @@ const baseNavigationItems: NavigationItem[] = [
   { to: "/devices", label: "Devices", icon: cilDevices, permission: moduleRoutePermissions.devices, end: true },
 ];
 
-const settingsIconsByRoute: Record<string, string[]> = {
-  "/settings/profiles": cilSettings,
-  "/settings/users": cilUser,
-  "/settings/integrations": cilApplicationsSettings,
-};
-
 function colorModeIcon(mode: string) {
   if (mode === "dark") {
     return cilMoon;
@@ -119,10 +112,7 @@ export function AppShell() {
     return null;
   }
 
-  const settingsNavigationItems = accessibleSettingsNavigation(session.user).map((item) => ({
-    ...item,
-    icon: settingsIconsByRoute[item.to] ?? cilSettings,
-  }));
+  const settingsNavigationItems = accessibleSettingsNavigation(session.user);
   const canManageSettings = settingsNavigationItems.length > 0;
   const currentTitle = pageTitleForPath(location.pathname);
   const fallbackName = `${session.user.first_name ?? ""} ${session.user.last_name ?? ""}`.trim();
@@ -156,16 +146,6 @@ export function AppShell() {
           {navigationItems.map((item) => (
             <CNavItem key={item.to}>
               <CNavLink as={NavLink} to={withDevMode(item.to)} end={item.end}>
-                <CIcon customClassName="nav-icon" icon={item.icon} />
-                {item.label}
-              </CNavLink>
-            </CNavItem>
-          ))}
-
-          {settingsNavigationItems.length ? <CNavTitle>Settings</CNavTitle> : null}
-          {settingsNavigationItems.map((item) => (
-            <CNavItem key={item.to}>
-              <CNavLink as={NavLink} to={withDevMode(item.to)}>
                 <CIcon customClassName="nav-icon" icon={item.icon} />
                 {item.label}
               </CNavLink>
