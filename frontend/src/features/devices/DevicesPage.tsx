@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { CAlert, CBadge, CButton, CCard, CCardBody, CCardHeader, CSpinner, CTable } from "@coreui/react";
 import { useNavigate } from "react-router-dom";
 
 import { EmptyState } from "../../components/EmptyState";
@@ -35,27 +36,26 @@ export function DevicesPage() {
   const canManageIntegrations = session ? hasPermission(session.user, settingsRoutePermissions.integrations) : false;
 
   return (
-    <div className="space-y-6">
+    <div className="d-grid gap-4">
       {canManageIntegrations && !isDevMode ? (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => navigate(withDevMode("/settings/integrations?module=devices"))}
-            className="atlas-primary-button rounded-2xl px-4 py-2.5 text-sm font-semibold"
-          >
+        <div className="d-flex justify-content-end">
+          <CButton color="primary" onClick={() => navigate(withDevMode("/settings/integrations?module=devices"))}>
             Integrate Now
-          </button>
+          </CButton>
         </div>
       ) : null}
 
       {devicesQuery.isLoading ? (
-        <section className="atlas-panel rounded-[28px] px-5 py-12 text-center text-sm text-atlas-muted">
-          Loading device inventory...
-        </section>
+        <CCard className="shadow-sm">
+          <CCardBody className="py-5 text-center text-body-secondary">
+            <CSpinner color="primary" className="mb-3" />
+            <div>Loading device inventory...</div>
+          </CCardBody>
+        </CCard>
       ) : devicesQuery.isError ? (
-        <section className="atlas-error rounded-[28px] px-5 py-5 text-sm leading-6">
+        <CAlert color="danger" className="mb-0">
           {devicesQuery.error instanceof Error ? devicesQuery.error.message : "Unable to load the devices module."}
-        </section>
+        </CAlert>
       ) : data ? (
         data.items.length === 0 ? (
           <EmptyState
@@ -65,57 +65,58 @@ export function DevicesPage() {
             onAction={() => (canManageIntegrations ? navigate(withDevMode("/settings/integrations?module=devices")) : void devicesQuery.refetch())}
           />
         ) : (
-          <section className="atlas-panel overflow-hidden rounded-[28px]">
-            <div className="flex items-center justify-between border-b border-[rgba(23,32,42,0.08)] px-6 py-4">
+          <CCard className="shadow-sm">
+            <CCardHeader className="d-flex flex-wrap align-items-start justify-content-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-atlas">All Devices</p>
-                <p className="mt-1 text-sm text-atlas-muted">
+                <p className="mb-1 fw-semibold">All Devices</p>
+                <p className="mb-0 text-body-secondary">
                   Sources: {data.source_status.configured_sources.map((source) => source.name).join(", ")}
                 </p>
               </div>
-              <span className="atlas-pill rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]">
-                {data.items.length} records
-              </span>
-            </div>
+              <div className="d-flex flex-wrap gap-2">
+                <CBadge color="secondary">{data.items.length} records</CBadge>
+                {isDevMode ? <CBadge color="warning">Test Data</CBadge> : null}
+              </div>
+            </CCardHeader>
 
-            <div className="overflow-x-auto">
-              <table className="min-w-full border-collapse text-left">
-                <thead className="atlas-table-head text-[0.74rem] font-semibold uppercase tracking-[0.18em]">
+            <CCardBody className="p-0">
+              <CTable hover responsive className="mb-0">
+                <thead>
                   <tr>
-                    <th className="px-6 py-4">Device</th>
-                    <th className="px-6 py-4">Source</th>
-                    <th className="px-6 py-4">Ownership</th>
-                    <th className="px-6 py-4">Compliance</th>
-                    <th className="px-6 py-4">Management</th>
-                    <th className="px-6 py-4">Primary User</th>
-                    <th className="px-6 py-4">Last Check-In</th>
+                    <th>Device</th>
+                    <th>Source</th>
+                    <th>Ownership</th>
+                    <th>Compliance</th>
+                    <th>Management</th>
+                    <th>Primary User</th>
+                    <th>Last Check-In</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.items.map((item) => (
-                    <tr key={item.id} className="atlas-table-row border-t border-[rgba(23,32,42,0.06)] align-top text-sm">
-                      <td className="px-6 py-4">
-                        <p className="font-semibold text-atlas">{item.device_name}</p>
-                        <p className="mt-1 text-atlas-muted">
+                    <tr key={item.id}>
+                      <td>
+                        <div className="fw-semibold">{item.device_name}</div>
+                        <div className="text-body-secondary">
                           {item.platform}
                           {item.manufacturer || item.model ? ` - ${[item.manufacturer, item.model].filter(Boolean).join(" ")}` : ""}
-                        </p>
-                        <p className="mt-2 text-xs uppercase tracking-[0.12em] text-atlas-dim">{item.serial_number ?? "No serial recorded"}</p>
+                        </div>
+                        <div className="small text-body-secondary text-uppercase">{item.serial_number ?? "No serial recorded"}</div>
                       </td>
-                      <td className="px-6 py-4">{item.source_provider}</td>
-                      <td className="px-6 py-4">{item.ownership}</td>
-                      <td className="px-6 py-4">
+                      <td>{item.source_provider}</td>
+                      <td>{item.ownership}</td>
+                      <td>
                         <StatusBadge label={item.compliance_state} tone={complianceTone(item.compliance_state)} />
                       </td>
-                      <td className="px-6 py-4">{item.management_state}</td>
-                      <td className="px-6 py-4">{item.primary_user_email ?? "Unassigned"}</td>
-                      <td className="px-6 py-4">{formatDateTime(item.last_check_in_at)}</td>
+                      <td>{item.management_state}</td>
+                      <td>{item.primary_user_email ?? "Unassigned"}</td>
+                      <td>{formatDateTime(item.last_check_in_at)}</td>
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
-          </section>
+              </CTable>
+            </CCardBody>
+          </CCard>
         )
       ) : null}
     </div>

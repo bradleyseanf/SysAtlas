@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { CAlert, CBadge, CButton, CCard, CCardBody, CCardHeader, CSpinner, CTable } from "@coreui/react";
 import { useNavigate } from "react-router-dom";
 
 import { EmptyState } from "../../components/EmptyState";
@@ -43,27 +44,26 @@ export function UsersPage() {
   const canManageIntegrations = session ? hasPermission(session.user, settingsRoutePermissions.integrations) : false;
 
   return (
-    <div className="space-y-6">
+    <div className="d-grid gap-4">
       {canManageIntegrations && !isDevMode ? (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => navigate(withDevMode("/settings/integrations?module=users"))}
-            className="atlas-primary-button rounded-2xl px-4 py-2.5 text-sm font-semibold"
-          >
+        <div className="d-flex justify-content-end">
+          <CButton color="primary" onClick={() => navigate(withDevMode("/settings/integrations?module=users"))}>
             Integrate Now
-          </button>
+          </CButton>
         </div>
       ) : null}
 
       {usersQuery.isLoading ? (
-        <section className="atlas-panel rounded-[28px] px-5 py-12 text-center text-sm text-atlas-muted">
-          Loading user inventory...
-        </section>
+        <CCard className="shadow-sm">
+          <CCardBody className="py-5 text-center text-body-secondary">
+            <CSpinner color="primary" className="mb-3" />
+            <div>Loading user inventory...</div>
+          </CCardBody>
+        </CCard>
       ) : usersQuery.isError ? (
-        <section className="atlas-error rounded-[28px] px-5 py-5 text-sm leading-6">
+        <CAlert color="danger" className="mb-0">
           {usersQuery.error instanceof Error ? usersQuery.error.message : "Unable to load the users module."}
-        </section>
+        </CAlert>
       ) : data ? (
         data.items.length === 0 ? (
           <EmptyState
@@ -73,58 +73,59 @@ export function UsersPage() {
             onAction={() => (canManageIntegrations ? navigate(withDevMode("/settings/integrations?module=users")) : void usersQuery.refetch())}
           />
         ) : (
-          <section className="atlas-panel overflow-hidden rounded-[28px]">
-            <div className="flex items-center justify-between border-b border-[rgba(23,32,42,0.08)] px-6 py-4">
+          <CCard className="shadow-sm">
+            <CCardHeader className="d-flex flex-wrap align-items-start justify-content-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-atlas">All Users</p>
-                <p className="mt-1 text-sm text-atlas-muted">
+                <p className="mb-1 fw-semibold">All Users</p>
+                <p className="mb-0 text-body-secondary">
                   Sources: {data.source_status.configured_sources.map((source) => source.name).join(", ")}
                 </p>
               </div>
-              <span className="atlas-pill rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]">
-                {data.items.length} records
-              </span>
-            </div>
+              <div className="d-flex flex-wrap gap-2">
+                <CBadge color="secondary">{data.items.length} records</CBadge>
+                {isDevMode ? <CBadge color="warning">Test Data</CBadge> : null}
+              </div>
+            </CCardHeader>
 
-            <div className="overflow-x-auto">
-              <table className="min-w-full border-collapse text-left">
-                <thead className="atlas-table-head text-[0.74rem] font-semibold uppercase tracking-[0.18em]">
+            <CCardBody className="p-0">
+              <CTable hover responsive className="mb-0">
+                <thead>
                   <tr>
-                    <th className="px-6 py-4">User</th>
-                    <th className="px-6 py-4">Source</th>
-                    <th className="px-6 py-4">Department</th>
-                    <th className="px-6 py-4">Devices</th>
-                    <th className="px-6 py-4">Lifecycle</th>
-                    <th className="px-6 py-4">Account</th>
-                    <th className="px-6 py-4">Last Activity</th>
-                    <th className="px-6 py-4">Last Sync</th>
+                    <th>User</th>
+                    <th>Source</th>
+                    <th>Department</th>
+                    <th>Devices</th>
+                    <th>Lifecycle</th>
+                    <th>Account</th>
+                    <th>Last Activity</th>
+                    <th>Last Sync</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.items.map((item) => (
-                    <tr key={item.id} className="atlas-table-row border-t border-[rgba(23,32,42,0.06)] align-top text-sm">
-                      <td className="px-6 py-4">
-                        <p className="font-semibold text-atlas">{item.display_name}</p>
-                        <p className="mt-1 text-atlas-muted">{item.email}</p>
-                        <p className="mt-2 text-xs uppercase tracking-[0.12em] text-atlas-dim">{item.title ?? "No title"}</p>
+                    <tr key={item.id}>
+                      <td>
+                        <div className="fw-semibold">{item.display_name}</div>
+                        <div className="text-body-secondary">{item.email}</div>
+                        <div className="small text-body-secondary text-uppercase">{item.title ?? "No title"}</div>
                       </td>
-                      <td className="px-6 py-4">{item.source_provider}</td>
-                      <td className="px-6 py-4">{item.department ?? "Not assigned"}</td>
-                      <td className="px-6 py-4">{item.device_count}</td>
-                      <td className="px-6 py-4">
+                      <td>{item.source_provider}</td>
+                      <td>{item.department ?? "Not assigned"}</td>
+                      <td>{item.device_count}</td>
+                      <td>
                         <StatusBadge label={item.lifecycle_state} tone={lifecycleTone(item.lifecycle_state)} />
                       </td>
-                      <td className="px-6 py-4">
+                      <td>
                         <StatusBadge label={item.account_status} tone={accountTone(item.account_status)} />
                       </td>
-                      <td className="px-6 py-4">{formatDateTime(item.last_activity_at)}</td>
-                      <td className="px-6 py-4">{formatDateTime(item.last_synced_at)}</td>
+                      <td>{formatDateTime(item.last_activity_at)}</td>
+                      <td>{formatDateTime(item.last_synced_at)}</td>
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
-          </section>
+              </CTable>
+            </CCardBody>
+          </CCard>
         )
       ) : null}
     </div>

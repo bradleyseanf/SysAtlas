@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { CBadge, CCard, CCardBody, CCardHeader, CCol, CRow } from "@coreui/react";
 import { Link } from "react-router-dom";
 
 import { StatCard } from "../../components/StatCard";
@@ -135,37 +136,42 @@ export function HomePage() {
   ].filter(Boolean) as Array<{ to: string; label: string; description: string }>;
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div className="d-grid gap-4">
+      <CRow className="g-4" xs={{ cols: 1 }} md={{ cols: 2 }} xl={{ cols: 4 }}>
         {snapshotCards.map((card) => (
-          <StatCard key={card.label} label={card.label} value={card.value} caption={card.caption} />
+          <CCol key={card.label}>
+            <StatCard label={card.label} value={card.value} caption={card.caption} />
+          </CCol>
         ))}
-      </div>
+      </CRow>
 
-      <section className="atlas-panel rounded-[30px] p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <CCard className="shadow-sm">
+        <CCardHeader className="d-flex flex-wrap align-items-start justify-content-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-atlas">Workspace Areas</p>
-            <p className="mt-1 text-sm text-atlas-muted">Use Home for the summary, then jump straight into the area you need.</p>
+            <p className="mb-1 fw-semibold">Workspace Areas</p>
+            <p className="mb-0 text-body-secondary">
+              Use Home for the summary, then jump straight into the area you need.
+            </p>
           </div>
-          <span className="atlas-pill rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]">
-            {quickLinks.length} available
-          </span>
-        </div>
-
-        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {quickLinks.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className="rounded-[24px] border border-[rgba(23,32,42,0.08)] bg-white/72 px-5 py-5 transition hover:border-[rgba(201,74,99,0.22)] hover:bg-white"
-            >
-              <p className="text-sm font-semibold text-atlas">{item.label}</p>
-              <p className="mt-2 text-sm leading-6 text-atlas-muted">{item.description}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
+          <CBadge color="secondary">{quickLinks.length} available</CBadge>
+        </CCardHeader>
+        <CCardBody>
+          <CRow className="g-4" xs={{ cols: 1 }} md={{ cols: 2 }} xl={{ cols: 3 }}>
+            {quickLinks.map((item) => (
+              <CCol key={item.to}>
+                <Link to={item.to} className="text-decoration-none text-reset">
+                  <CCard className="h-100">
+                    <CCardBody>
+                      <p className="mb-2 fw-semibold">{item.label}</p>
+                      <p className="mb-0 text-body-secondary">{item.description}</p>
+                    </CCardBody>
+                  </CCard>
+                </Link>
+              </CCol>
+            ))}
+          </CRow>
+        </CCardBody>
+      </CCard>
     </div>
   );
 }

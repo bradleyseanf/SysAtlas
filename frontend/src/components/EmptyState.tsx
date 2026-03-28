@@ -1,3 +1,5 @@
+import { CButton, CCard, CCardBody } from "@coreui/react";
+
 type EmptyStateProps = {
   title: string;
   description: string;
@@ -7,17 +9,17 @@ type EmptyStateProps = {
 
 export function EmptyState({ title, description, actionLabel, onAction }: EmptyStateProps) {
   return (
-    <section className="atlas-panel rounded-[28px] border-dashed border-[rgba(23,32,42,0.1)] px-8 py-12 text-center">
-      <p className="text-atlas-accent-soft text-[0.74rem] font-semibold uppercase tracking-[0.2em]">No Inventory Available</p>
-      <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-atlas">{title}</h2>
-      <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-atlas-muted">{description}</p>
-      <button
-        type="button"
-        onClick={onAction}
-        className="atlas-primary-button mt-7 rounded-2xl px-5 py-3 text-sm font-semibold"
-      >
-        {actionLabel}
-      </button>
-    </section>
+    <CCard className="shadow-sm border-2" style={{ borderStyle: "dashed" }}>
+      <CCardBody className="px-4 py-5 text-center">
+        <p className="mb-3 small fw-semibold text-body-secondary text-uppercase">No Data Available</p>
+        <h2 className="h4 mb-3">{title}</h2>
+        <p className="mx-auto mb-0 text-body-secondary" style={{ maxWidth: "42rem" }}>
+          {description}
+        </p>
+        <div className="mt-4">
+          <CButton onClick={onAction}>{actionLabel}</CButton>
+        </div>
+      </CCardBody>
+    </CCard>
   );
 }

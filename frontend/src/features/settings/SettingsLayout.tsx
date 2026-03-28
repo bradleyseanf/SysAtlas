@@ -1,3 +1,4 @@
+import { CBadge, CCard, CCardBody } from "@coreui/react";
 import { Navigate, NavLink, Outlet } from "react-router-dom";
 
 import { accessibleSettingsNavigation, defaultAuthorizedRoute } from "../../lib/access";
@@ -18,34 +19,26 @@ export function SettingsLayout() {
   }
 
   return (
-    <div className="space-y-5">
-      <section className="atlas-panel-strong rounded-[30px] px-6 py-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="d-grid gap-4">
+      <CCard className="shadow-sm">
+        <CCardBody className="d-flex flex-wrap align-items-start justify-content-between gap-3">
           <div>
-            <p className="text-atlas-accent-soft text-[0.74rem] font-semibold uppercase tracking-[0.18em]">
-              Workspace Controls
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-atlas">Settings</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-atlas-muted">
+            <p className="mb-2 small fw-semibold text-body-secondary text-uppercase">Workspace Controls</p>
+            <h1 className="h3 mb-2">Settings</h1>
+            <p className="mb-0 text-body-secondary">
               Manage access profiles, admin sign-in accounts, and provider connections from one place.
             </p>
           </div>
-          <div className="atlas-pill rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em]">
-            {visibleTabs.length} areas available
-          </div>
-        </div>
-      </section>
+          <CBadge color="secondary">{visibleTabs.length} areas available</CBadge>
+        </CCardBody>
+      </CCard>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="d-flex flex-wrap gap-2">
         {visibleTabs.map((item) => (
           <NavLink
             key={item.to}
             to={withDevMode(item.to)}
-            className={({ isActive }) =>
-              `rounded-full px-4 py-2 text-sm font-semibold transition ${
-                isActive ? "atlas-pill-accent" : "atlas-secondary-button text-atlas-soft"
-              }`
-            }
+            className={({ isActive }) => `btn ${isActive ? "btn-primary" : "btn-outline-secondary"}`}
           >
             {item.label}
           </NavLink>
