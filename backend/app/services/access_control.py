@@ -8,11 +8,15 @@ from sqlalchemy.orm import Session
 
 from app.core.access_control import (
     ALL_PERMISSION_KEYS,
+    DEFAULT_ADMIN_PROFILE_SEED,
     DEFAULT_PROFILE_DEFINITIONS,
     DEFAULT_STANDARD_PROFILE_SEED,
     DEFAULT_SUPERUSER_PROFILE_SEED,
+    LEGACY_DEFAULT_PROFILE_SEEDS,
     PERMISSION_DEFINITION_MAP,
     PERMISSION_DEFINITIONS,
+    PROFILE_DISPLAY_ORDER,
+    READ_ONLY_PERMISSION_KEYS,
 )
 from app.core.security import hash_password
 from app.models.access_profile import AccessProfile
@@ -28,6 +32,10 @@ from app.schemas.access_control import (
     AccessUserUpsertRequest,
     PermissionDefinitionResponse,
 )
+
+PROFILE_ORDER_INDEX = {seed_key: index for index, seed_key in enumerate(PROFILE_DISPLAY_ORDER)}
+READ_ONLY_PERMISSION_SET = frozenset(READ_ONLY_PERMISSION_KEYS)
+SUPER_ADMIN_RESERVED_MESSAGE = "Super Admin is reserved for the user who initialized this instance."
 
 
 def permission_catalog() -> list[PermissionDefinitionResponse]:
@@ -55,41 +63,133 @@ def _sanitize_permission_keys(permission_keys: Iterable[str]) -> list[str]:
     return ordered
 
 
+def _profile_sort_key(profile: AccessProfile) -> tuple[int, str]:
+    return (PROFILE_ORDER_INDEX.get(profile.seed_key or "", len(PROFILE_ORDER_INDEX)), profile.name.lower())
+
+
+def _get_seed_profile(db: Session, seed_key: str) -> AccessProfile | None:
+    return db.scalar(select(AccessProfile).where(AccessProfile.seed_key == seed_key))
+
+
+def _primary_super_admin_user(db: Session) -> User | None:
+    return db.scalar(select(User).order_by(User.created_at.asc(), User.email.asc()))
+
+
+def _default_profile_for_standard_user(
+    current_profile: AccessProfile | None,
+    admin_profile: AccessProfile | None,
+    user_profile: AccessProfile | None,
+) -> AccessProfile | None:
+    if current_profile is None:
+        return user_profile
+
+    if current_profile.seed_key == DEFAULT_ADMIN_PROFILE_SEED:
+        return admin_profile
+
+    if current_profile.seed_key == DEFAULT_STANDARD_PROFILE_SEED:
+        return user_profile
+
+    if current_profile.seed_key == DEFAULT_SUPERUSER_PROFILE_SEED:
+        return admin_profile
+
+    if current_profile.seed_key in LEGACY_DEFAULT_PROFILE_SEEDS:
+        assigned_permissions = set(_sanitize_permission_keys(current_profile.permissions))
+        if not assigned_permissions or assigned_permissions.issubset(READ_ONLY_PERMISSION_SET):
+            return user_profile
+        return admin_profile
+
+    return current_profile
+
+
 def ensure_default_profiles(db: Session) -> None:
     profiles = db.scalars(select(AccessProfile)).all()
     profiles_by_seed = {profile.seed_key: profile for profile in profiles if profile.seed_key}
+    profiles_by_name = {profile.name.lower(): profile for profile in profiles}
     created = False
 
     for definition in DEFAULT_PROFILE_DEFINITIONS:
-        if definition.seed_key in profiles_by_seed:
-            continue
+        profile = profiles_by_seed.get(definition.seed_key)
+        seeded_now = False
 
-        db.add(
-            AccessProfile(
-                seed_key=definition.seed_key,
-                name=definition.name,
-                description=definition.description,
-                permissions=list(definition.permissions),
-                is_system_profile=definition.system_managed,
-            )
-        )
-        created = True
+        if profile is None:
+            profile = profiles_by_name.get(definition.name.lower())
+            if profile is None:
+                profile = AccessProfile(
+                    seed_key=definition.seed_key,
+                    name=definition.name,
+                    description=definition.description,
+                    permissions=list(definition.permissions),
+                    is_system_profile=definition.system_managed,
+                )
+                db.add(profile)
+                profiles.append(profile)
+            else:
+                profile.seed_key = definition.seed_key
+            profiles_by_seed[definition.seed_key] = profile
+            profiles_by_name[definition.name.lower()] = profile
+            created = True
+            seeded_now = True
+
+        desired_name_owner = profiles_by_name.get(definition.name.lower())
+        if profile.name != definition.name and (desired_name_owner is None or desired_name_owner.id == profile.id):
+            previous_name = profile.name.lower()
+            profile.name = definition.name
+            profiles_by_name.pop(previous_name, None)
+            profiles_by_name[definition.name.lower()] = profile
+            created = True
+
+        if profile.description != definition.description:
+            profile.description = definition.description
+            created = True
+
+        if profile.is_system_profile != definition.system_managed:
+            profile.is_system_profile = definition.system_managed
+            created = True
+
+        if definition.system_managed or seeded_now:
+            desired_permissions = list(definition.permissions)
+            if _sanitize_permission_keys(profile.permissions) != desired_permissions:
+                profile.permissions = desired_permissions
+                created = True
 
     if created:
-        db.commit()
+        db.flush()
         profiles = db.scalars(select(AccessProfile)).all()
         profiles_by_seed = {profile.seed_key: profile for profile in profiles if profile.seed_key}
 
     default_superuser_profile = profiles_by_seed.get(DEFAULT_SUPERUSER_PROFILE_SEED)
+    default_admin_profile = profiles_by_seed.get(DEFAULT_ADMIN_PROFILE_SEED)
     default_standard_profile = profiles_by_seed.get(DEFAULT_STANDARD_PROFILE_SEED)
-    changed = False
+    profile_map = {profile.id: profile for profile in profiles}
+    changed = created
+    users = db.scalars(select(User).order_by(User.created_at.asc(), User.email.asc())).all()
+    primary_super_admin_id = users[0].id if users else None
 
-    for user in db.scalars(select(User).where(User.profile_id.is_(None))).all():
-        if user.is_superuser and default_superuser_profile is not None:
-            user.profile_id = default_superuser_profile.id
+    for user in users:
+        current_profile = profile_map.get(user.profile_id)
+
+        if primary_super_admin_id is not None and user.id == primary_super_admin_id and default_superuser_profile is not None:
+            target_profile = default_superuser_profile
+            target_is_superuser = True
+        else:
+            target_profile = _default_profile_for_standard_user(
+                current_profile,
+                admin_profile=default_admin_profile,
+                user_profile=default_standard_profile,
+            )
+            target_is_superuser = False
+
+        if user.is_superuser != target_is_superuser:
+            user.is_superuser = target_is_superuser
             changed = True
-        elif default_standard_profile is not None:
-            user.profile_id = default_standard_profile.id
+
+        if target_profile is not None and user.profile_id != target_profile.id:
+            user.profile_id = target_profile.id
+            changed = True
+
+    for profile in profiles:
+        if profile.seed_key in LEGACY_DEFAULT_PROFILE_SEEDS:
+            db.delete(profile)
             changed = True
 
     if changed:
@@ -175,7 +275,7 @@ def serialize_access_user(
 
 def list_access_control_state(db: Session) -> AccessControlResponse:
     ensure_default_profiles(db)
-    profiles = db.scalars(select(AccessProfile).order_by(AccessProfile.name.asc())).all()
+    profiles = sorted(db.scalars(select(AccessProfile)).all(), key=_profile_sort_key)
     users = db.scalars(select(User).order_by(User.is_superuser.desc(), User.created_at.asc())).all()
     assigned_user_counts = {
         profile_id: count
@@ -215,10 +315,11 @@ def _resolve_profile_for_user(payload: AccessUserUpsertRequest, db: Session) -> 
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="The selected access profile could not be found.",
             )
-        return profile
-
-    profile = db.scalar(select(AccessProfile).where(AccessProfile.seed_key == DEFAULT_SUPERUSER_PROFILE_SEED))
-    if payload.is_superuser and profile is not None:
+        if profile.seed_key == DEFAULT_SUPERUSER_PROFILE_SEED:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=SUPER_ADMIN_RESERVED_MESSAGE,
+            )
         return profile
 
     raise HTTPException(
@@ -237,6 +338,11 @@ def upsert_profile(payload: AccessProfileUpsertRequest, db: Session) -> AccessPr
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="The selected access profile could not be found.",
+            )
+        if profile.seed_key == DEFAULT_SUPERUSER_PROFILE_SEED:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="The Super Admin profile cannot be changed.",
             )
         if existing is not None and existing.id != profile.id:
             raise HTTPException(
@@ -280,15 +386,10 @@ def upsert_profile(payload: AccessProfileUpsertRequest, db: Session) -> AccessPr
     )
 
 
-def _active_superuser_count(db: Session) -> int:
-    return db.scalar(
-        select(func.count(User.id)).where(User.is_superuser.is_(True), User.is_active.is_(True))
-    ) or 0
-
-
 def upsert_access_user(payload: AccessUserUpsertRequest, db: Session) -> AccessUserMutationResponse:
     ensure_default_profiles(db)
-    selected_profile = _resolve_profile_for_user(payload, db)
+    primary_super_admin = _primary_super_admin_user(db)
+    super_admin_profile = _get_seed_profile(db, DEFAULT_SUPERUSER_PROFILE_SEED)
     existing_email_owner = db.scalar(select(User).where(func.lower(User.email) == payload.email))
 
     if payload.id:
@@ -313,24 +414,25 @@ def upsert_access_user(payload: AccessUserUpsertRequest, db: Session) -> AccessU
                 detail="A SysAtlas user with that email already exists.",
             )
 
-        removing_last_superuser = (
-            user.is_superuser
-            and (not payload.is_superuser or not payload.is_active)
-            and _active_superuser_count(db) <= 1
-        )
-        if removing_last_superuser:
+        is_primary_super_admin = primary_super_admin is not None and user.id == primary_super_admin.id
+        if payload.is_superuser and not is_primary_super_admin:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="SysAtlas requires at least one active super admin.",
+                detail=SUPER_ADMIN_RESERVED_MESSAGE,
             )
+        selected_profile = (
+            super_admin_profile
+            if is_primary_super_admin
+            else _resolve_profile_for_user(payload, db)
+        )
 
         user.first_name = payload.first_name
         user.last_name = payload.last_name
         user.display_name = f"{payload.first_name} {payload.last_name}".strip()
         user.email = payload.email
-        user.profile_id = selected_profile.id
+        user.profile_id = selected_profile.id if selected_profile is not None else user.profile_id
         user.is_active = payload.is_active
-        user.is_superuser = payload.is_superuser
+        user.is_superuser = is_primary_super_admin
         if payload.password:
             user.hashed_password = hash_password(payload.password)
         message = f"{user.display_name or user.email} updated."
@@ -345,6 +447,12 @@ def upsert_access_user(payload: AccessUserUpsertRequest, db: Session) -> AccessU
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Set a password before creating a user.",
             )
+        if payload.is_superuser:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=SUPER_ADMIN_RESERVED_MESSAGE,
+            )
+        selected_profile = _resolve_profile_for_user(payload, db)
 
         user = User(
             first_name=payload.first_name,
@@ -353,7 +461,7 @@ def upsert_access_user(payload: AccessUserUpsertRequest, db: Session) -> AccessU
             email=payload.email,
             hashed_password=hash_password(payload.password),
             is_active=payload.is_active,
-            is_superuser=payload.is_superuser,
+            is_superuser=False,
             profile_id=selected_profile.id,
         )
         db.add(user)

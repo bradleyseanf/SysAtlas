@@ -13,9 +13,9 @@ class PermissionDefinition:
 class DefaultProfileDefinition:
     seed_key: str
     name: str
-    description: str
+    description: str | None
     permissions: tuple[str, ...]
-    system_managed: bool = True
+    system_managed: bool = False
 
 
 PERMISSION_DEFINITIONS: tuple[PermissionDefinition, ...] = (
@@ -59,45 +59,45 @@ PERMISSION_DEFINITIONS: tuple[PermissionDefinition, ...] = (
 
 PERMISSION_DEFINITION_MAP = {item.key: item for item in PERMISSION_DEFINITIONS}
 ALL_PERMISSION_KEYS = tuple(item.key for item in PERMISSION_DEFINITIONS)
+READ_ONLY_PERMISSION_KEYS = (
+    "libraries.view",
+    "users.view",
+    "devices.view",
+)
 
 DEFAULT_PROFILE_DEFINITIONS: tuple[DefaultProfileDefinition, ...] = (
     DefaultProfileDefinition(
-        seed_key="platform_admin",
-        name="Platform Admin",
-        description="Full workspace access across modules, access control, and external integrations.",
+        seed_key="super_admin",
+        name="Super Admin",
+        description=None,
+        permissions=ALL_PERMISSION_KEYS,
+        system_managed=True,
+    ),
+    DefaultProfileDefinition(
+        seed_key="admin",
+        name="Admin",
+        description=None,
         permissions=ALL_PERMISSION_KEYS,
     ),
     DefaultProfileDefinition(
-        seed_key="identity_operations",
-        name="Identity Operations",
-        description="Focused access for library review, user inventory, and identity-source setup.",
-        permissions=(
-            "libraries.view",
-            "users.view",
-            "settings.integrations.manage",
-        ),
-    ),
-    DefaultProfileDefinition(
-        seed_key="device_operations",
-        name="Device Operations",
-        description="Focused access for staged libraries, device inventory, and device-source setup.",
-        permissions=(
-            "libraries.view",
-            "devices.view",
-            "settings.integrations.manage",
-        ),
-    ),
-    DefaultProfileDefinition(
-        seed_key="audit_viewer",
-        name="Audit Viewer",
-        description="Read-only inventory visibility without access to administrative settings.",
-        permissions=(
-            "libraries.view",
-            "users.view",
-            "devices.view",
-        ),
+        seed_key="user",
+        name="User",
+        description=None,
+        permissions=READ_ONLY_PERMISSION_KEYS,
     ),
 )
 
-DEFAULT_SUPERUSER_PROFILE_SEED = "platform_admin"
-DEFAULT_STANDARD_PROFILE_SEED = "audit_viewer"
+DEFAULT_SUPERUSER_PROFILE_SEED = "super_admin"
+DEFAULT_ADMIN_PROFILE_SEED = "admin"
+DEFAULT_STANDARD_PROFILE_SEED = "user"
+PROFILE_DISPLAY_ORDER = (
+    DEFAULT_SUPERUSER_PROFILE_SEED,
+    DEFAULT_ADMIN_PROFILE_SEED,
+    DEFAULT_STANDARD_PROFILE_SEED,
+)
+LEGACY_DEFAULT_PROFILE_SEEDS = (
+    "platform_admin",
+    "identity_operations",
+    "device_operations",
+    "audit_viewer",
+)
