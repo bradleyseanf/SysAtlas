@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import CIcon from "@coreui/icons-react";
 import {
+  cibGithub,
   cilAccountLogout,
   cilApplicationsSettings,
   cilContrast,
@@ -19,6 +20,7 @@ import {
   CBadge,
   CCloseButton,
   CContainer,
+  CLink,
   CDropdown,
   CDropdownDivider,
   CDropdownHeader,
@@ -40,7 +42,7 @@ import {
   useColorModes,
 } from "@coreui/react";
 
-import { APP_NAME, APP_VERSION } from "../../lib/appMeta";
+import { APP_NAME, APP_REPOSITORY_URL, APP_VERSION } from "../../lib/appMeta";
 import {
   accessibleSettingsNavigation,
   hasPermission,
@@ -171,8 +173,20 @@ export function AppShell() {
           ))}
         </CSidebarNav>
 
-        <CSidebarFooter className="border-top d-none d-lg-flex align-items-center justify-content-between px-3 py-2">
-          <span className="small text-white-50">{APP_VERSION}</span>
+        <CSidebarFooter className="border-top d-none d-lg-flex align-items-center justify-content-between gap-2 px-3 py-2">
+          <div className="d-flex align-items-center gap-2 overflow-hidden">
+            <span className="small text-white-50 d-narrow-none">{APP_VERSION}</span>
+            <CLink
+              aria-label={`${APP_NAME} GitHub repository`}
+              className="d-inline-flex align-items-center justify-content-center rounded p-1 text-white-50 text-decoration-none"
+              href={APP_REPOSITORY_URL}
+              rel="noreferrer"
+              target="_blank"
+              title={`${APP_NAME} GitHub repository`}
+            >
+              <CIcon icon={cibGithub} size="lg" />
+            </CLink>
+          </div>
           <CSidebarToggler onClick={() => setIsSidebarNarrow((current) => !current)} />
         </CSidebarFooter>
       </CSidebar>
