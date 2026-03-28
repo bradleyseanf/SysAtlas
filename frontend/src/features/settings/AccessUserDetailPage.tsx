@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   CAlert,
@@ -49,7 +49,6 @@ export function AccessUserDetailPage() {
 
   const users = accessControlQuery.data?.users ?? [];
   const profiles = accessControlQuery.data?.profiles ?? [];
-  const permissions = accessControlQuery.data?.permissions ?? [];
   const isNewUser = userId === NEW_USER_ROUTE_ID;
   const selectedUser = isNewUser ? undefined : users.find((user) => user.id === userId);
   const superAdminProfile = profiles.find((profile) => profile.is_system_profile);
@@ -74,20 +73,6 @@ export function AccessUserDetailPage() {
     setNotice("");
     setNoticeTone("info");
   }, [isNewUser, selectedUser]);
-
-  const permissionRows = useMemo(
-    () =>
-      [...permissions]
-        .sort((left, right) => {
-          const byGroup = left.group.localeCompare(right.group);
-          return byGroup !== 0 ? byGroup : left.label.localeCompare(right.label);
-        })
-        .map((permission) => ({
-          ...permission,
-          enabled: selectedUser?.permissions.includes(permission.key) ?? false,
-        })),
-    [permissions, selectedUser],
-  );
 
   const saveAccessUserMutation = useMutation({
     mutationFn: api.saveAccessUser,
@@ -200,7 +185,6 @@ export function AccessUserDetailPage() {
             {selectedUser ? (
               <StatusBadge label={selectedUser.is_active ? "Active" : "Disabled"} tone={selectedUser.is_active ? "positive" : "danger"} />
             ) : null}
-            <CBadge color="secondary">{selectedUser?.permissions.length ?? 0} effective permissions</CBadge>
           </div>
         </CCardHeader>
 
@@ -245,41 +229,6 @@ export function AccessUserDetailPage() {
                 <th scope="row">Updated</th>
                 <td>{selectedUser ? formatDateTime(selectedUser.updated_at) : "Not created yet"}</td>
               </tr>
-            </tbody>
-          </CTable>
-        </CCardBody>
-      </CCard>
-
-      <CCard className="shadow-sm">
-        <CCardHeader>
-          <p className="mb-1 fw-semibold">Effective Access</p>
-          <p className="mb-0 text-body-secondary">Permissions inherited from the assigned profile appear here as a read-only list.</p>
-        </CCardHeader>
-
-        <CCardBody className="p-0">
-          <CTable hover responsive className="mb-0 align-middle">
-            <thead>
-              <tr>
-                <th>Permission</th>
-                <th>Group</th>
-                <th>Description</th>
-                <th>Access</th>
-              </tr>
-            </thead>
-            <tbody>
-              {permissionRows.map((permission) => (
-                <tr key={permission.key}>
-                  <td>
-                    <div className="fw-semibold">{permission.label}</div>
-                    <div className="small text-body-secondary">{permission.key}</div>
-                  </td>
-                  <td>{permission.group}</td>
-                  <td>{permission.description}</td>
-                  <td>
-                    <StatusBadge label={permission.enabled ? "On" : "Off"} tone={permission.enabled ? "positive" : "neutral"} />
-                  </td>
-                </tr>
-              ))}
             </tbody>
           </CTable>
         </CCardBody>

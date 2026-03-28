@@ -279,7 +279,6 @@ export function ProfileDetailPage() {
                   <tr key={permission.key}>
                     <td>
                       <div className="fw-semibold">{permission.label}</div>
-                      <div className="small text-body-secondary">{permission.key}</div>
                     </td>
                     <td>{permission.group}</td>
                     <td>{permission.description}</td>
