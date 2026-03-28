@@ -14,6 +14,8 @@ import { LibrariesPage } from "../features/libraries/LibrariesPage";
 import { SettingsLayout } from "../features/settings/SettingsLayout";
 import { ProfilesPage } from "../features/settings/ProfilesPage";
 import { AccessUsersPage } from "../features/settings/AccessUsersPage";
+import { ProfileDetailPage } from "../features/settings/ProfileDetailPage";
+import { AccessUserDetailPage } from "../features/settings/AccessUserDetailPage";
 import { UsersPage } from "../features/users/UsersPage";
 import { DevicesPage } from "../features/devices/DevicesPage";
 import { IntegrationsPage } from "../features/integrations/IntegrationsPage";
@@ -121,10 +123,26 @@ export function AppRouter() {
             }
           />
           <Route
+            path="profiles/:profileId"
+            element={
+              <RequirePermission allowed={hasPermission(session.user, settingsRoutePermissions.profiles)}>
+                <ProfileDetailPage />
+              </RequirePermission>
+            }
+          />
+          <Route
             path="users"
             element={
               <RequirePermission allowed={hasPermission(session.user, settingsRoutePermissions.users)}>
                 <AccessUsersPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="users/:userId"
+            element={
+              <RequirePermission allowed={hasPermission(session.user, settingsRoutePermissions.users)}>
+                <AccessUserDetailPage />
               </RequirePermission>
             }
           />
