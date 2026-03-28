@@ -338,10 +338,10 @@ export function HomePage() {
         <CCardBody className="p-4 p-lg-4">
           <CRow className="g-4 align-items-center">
             <CCol lg={8}>
-              <p className="mb-2 home-overview-kicker">Inventory Pulse</p>
-              <h2 className="h3 mb-2">Home now stays focused on monitoring.</h2>
+              <p className="mb-2 home-overview-kicker">Overview</p>
+              <h2 className="h3 mb-2">Dashboard</h2>
               <p className="mb-0 text-body-secondary">
-                Use the left sidebar to move through modules. This page tracks record intake and device posture without duplicating navigation.
+                Use the left sidebar to open modules. This page shows user growth, device growth, and device compliance.
               </p>
             </CCol>
             <CCol lg={4}>
@@ -371,7 +371,7 @@ export function HomePage() {
               <CCol>
                 <DashboardPanel
                   title="Users Added by Date"
-                  subtitle="Daily intake based on when user records were created in SysAtlas."
+                  subtitle="User records added per day."
                   icon={cilPeople}
                   badge={usersQuery.data ? `${usersQuery.data.items.length} records` : undefined}
                 >
@@ -401,7 +401,7 @@ export function HomePage() {
               <CCol>
                 <DashboardPanel
                   title="Devices Added by Date"
-                  subtitle="Daily intake based on when device records were created in SysAtlas."
+                  subtitle="Device records added per day."
                   icon={cilDevices}
                   badge={devicesQuery.data ? `${devicesQuery.data.items.length} records` : undefined}
                 >
@@ -430,8 +430,8 @@ export function HomePage() {
 
           {canViewDevices ? (
             <DashboardPanel
-              title="Device Compliance Split"
-              subtitle="Tracked devices grouped into compliant and non-compliant inventory."
+              title="Device Compliance"
+              subtitle="Compliant vs non-compliant devices."
               icon={cilShieldAlt}
               badge={devicesQuery.data ? `${complianceBreakdown.compliantShare}% compliant` : undefined}
             >
@@ -491,7 +491,7 @@ export function HomePage() {
       ) : (
         <CCard className="shadow-sm">
           <CCardBody className="py-5 text-center text-body-secondary">
-            Inventory charts appear here when your access profile includes the users or devices modules.
+            Charts appear here when you have access to Users or Devices.
           </CCardBody>
         </CCard>
       )}
