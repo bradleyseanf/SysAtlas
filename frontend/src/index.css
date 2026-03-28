@@ -10,6 +10,8 @@
   --sysatlas-red-rgb: 201, 74, 99;
   --sysatlas-red-hover: #b74259;
   --sysatlas-red-hover-rgb: 183, 66, 89;
+  --sysatlas-red-active: #9f364b;
+  --sysatlas-red-active-rgb: 159, 54, 75;
   --sysatlas-red-text: #8f3145;
   --sysatlas-red-subtle: #f3d3db;
   --sysatlas-red-border: #e3a1b0;
@@ -48,6 +50,72 @@
   --cui-component-active-bg: #d55d74;
   --cui-sidebar-nav-link-active-bg: #d55d74;
   --cui-sidebar-nav-link-hover-bg: rgba(213, 93, 116, 0.18);
+}
+
+.btn-primary {
+  --cui-btn-color: #fff;
+  --cui-btn-bg: var(--sysatlas-red);
+  --cui-btn-border-color: var(--sysatlas-red);
+  --cui-btn-hover-color: #fff;
+  --cui-btn-hover-bg: var(--sysatlas-red-hover);
+  --cui-btn-hover-border-color: var(--sysatlas-red-hover);
+  --cui-btn-focus-shadow-rgb: var(--sysatlas-red-rgb);
+  --cui-btn-active-color: #fff;
+  --cui-btn-active-bg: var(--sysatlas-red-active);
+  --cui-btn-active-border-color: var(--sysatlas-red-active);
+  --cui-btn-disabled-color: #fff;
+  --cui-btn-disabled-bg: var(--sysatlas-red);
+  --cui-btn-disabled-border-color: var(--sysatlas-red);
+}
+
+.btn-outline-primary {
+  --cui-btn-color: var(--sysatlas-red);
+  --cui-btn-border-color: var(--sysatlas-red);
+  --cui-btn-hover-color: #fff;
+  --cui-btn-hover-bg: var(--sysatlas-red);
+  --cui-btn-hover-border-color: var(--sysatlas-red);
+  --cui-btn-focus-shadow-rgb: var(--sysatlas-red-rgb);
+  --cui-btn-active-color: #fff;
+  --cui-btn-active-bg: var(--sysatlas-red-active);
+  --cui-btn-active-border-color: var(--sysatlas-red-active);
+  --cui-btn-disabled-color: var(--sysatlas-red);
+  --cui-btn-disabled-border-color: var(--sysatlas-red);
+}
+
+[data-coreui-theme="dark"] .btn-primary {
+  --cui-btn-color: #fff;
+  --cui-btn-bg: #d55d74;
+  --cui-btn-border-color: #d55d74;
+  --cui-btn-hover-color: #fff;
+  --cui-btn-hover-bg: #e0899a;
+  --cui-btn-hover-border-color: #e0899a;
+  --cui-btn-focus-shadow-rgb: 213, 93, 116;
+  --cui-btn-active-color: #fff;
+  --cui-btn-active-bg: var(--sysatlas-red);
+  --cui-btn-active-border-color: var(--sysatlas-red);
+  --cui-btn-disabled-color: #fff;
+  --cui-btn-disabled-bg: #d55d74;
+  --cui-btn-disabled-border-color: #d55d74;
+}
+
+[data-coreui-theme="dark"] .btn-outline-primary {
+  --cui-btn-color: #d55d74;
+  --cui-btn-border-color: #d55d74;
+  --cui-btn-hover-color: #fff;
+  --cui-btn-hover-bg: #d55d74;
+  --cui-btn-hover-border-color: #d55d74;
+  --cui-btn-focus-shadow-rgb: 213, 93, 116;
+  --cui-btn-active-color: #fff;
+  --cui-btn-active-bg: var(--sysatlas-red);
+  --cui-btn-active-border-color: var(--sysatlas-red);
+  --cui-btn-disabled-color: #d55d74;
+  --cui-btn-disabled-border-color: #d55d74;
+}
+
+.link-primary:hover,
+.link-primary:focus {
+  color: rgba(var(--cui-link-hover-color-rgb), var(--cui-link-opacity, 1)) !important;
+  text-decoration-color: rgba(var(--cui-link-hover-color-rgb), var(--cui-link-underline-opacity, 1)) !important;
 }
 
 *,
