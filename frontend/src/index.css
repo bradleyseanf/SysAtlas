@@ -6,6 +6,48 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  --sysatlas-red: #c94a63;
+  --sysatlas-red-rgb: 201, 74, 99;
+  --sysatlas-red-hover: #b74259;
+  --sysatlas-red-hover-rgb: 183, 66, 89;
+  --sysatlas-red-text: #8f3145;
+  --sysatlas-red-subtle: #f3d3db;
+  --sysatlas-red-border: #e3a1b0;
+  --cui-primary: var(--sysatlas-red);
+  --cui-primary-rgb: var(--sysatlas-red-rgb);
+  --cui-primary-text-emphasis: var(--sysatlas-red-text);
+  --cui-primary-bg-subtle: var(--sysatlas-red-subtle);
+  --cui-primary-border-subtle: var(--sysatlas-red-border);
+  --cui-primary-contrast: #fff;
+  --cui-link-color: var(--sysatlas-red);
+  --cui-link-color-rgb: var(--sysatlas-red-rgb);
+  --cui-link-hover-color: var(--sysatlas-red-hover);
+  --cui-link-hover-color-rgb: var(--sysatlas-red-hover-rgb);
+  --cui-focus-ring-color: rgba(201, 74, 99, 0.25);
+  --cui-component-active-bg: var(--sysatlas-red);
+  --cui-component-active-color: #fff;
+  --cui-sidebar-nav-link-active-bg: var(--sysatlas-red);
+  --cui-sidebar-nav-link-active-color: #fff;
+  --cui-sidebar-nav-link-active-icon-color: #fff;
+  --cui-sidebar-nav-link-hover-bg: rgba(201, 74, 99, 0.14);
+  --cui-sidebar-nav-link-hover-color: #fff;
+  --cui-sidebar-nav-link-hover-icon-color: #fff;
+}
+
+[data-coreui-theme="dark"] {
+  --cui-primary: #d55d74;
+  --cui-primary-rgb: 213, 93, 116;
+  --cui-primary-text-emphasis: #f1c1cb;
+  --cui-primary-bg-subtle: #582833;
+  --cui-primary-border-subtle: #8a4a59;
+  --cui-link-color: #e0899a;
+  --cui-link-color-rgb: 224, 137, 154;
+  --cui-link-hover-color: #ebb0bc;
+  --cui-link-hover-color-rgb: 235, 176, 188;
+  --cui-focus-ring-color: rgba(213, 93, 116, 0.3);
+  --cui-component-active-bg: #d55d74;
+  --cui-sidebar-nav-link-active-bg: #d55d74;
+  --cui-sidebar-nav-link-hover-bg: rgba(213, 93, 116, 0.18);
 }
 
 *,
