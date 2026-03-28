@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { CSpinner } from "@coreui/react";
 
 import { api } from "../lib/api";
 import { defaultAuthorizedRoute, defaultSettingsRoute, hasPermission, settingsRoutePermissions, moduleRoutePermissions } from "../lib/access";
@@ -44,8 +45,9 @@ export function AppRouter() {
 
   if (!isReady) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--atlas-bg)] px-6 text-center text-sm text-atlas-muted">
-        Restoring your secure session...
+      <div className="d-flex min-vh-100 flex-column align-items-center justify-content-center gap-3 px-4 text-center text-body-secondary">
+        <CSpinner color="primary" />
+        <span className="small">Restoring your secure session...</span>
       </div>
     );
   }
