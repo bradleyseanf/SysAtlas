@@ -1,6 +1,19 @@
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  CAlert,
+  CButton,
+  CCard,
+  CCardBody,
+  CCardHeader,
+  CCol,
+  CFormCheck,
+  CFormInput,
+  CFormLabel,
+  CRow,
+  CSpinner,
+} from "@coreui/react";
 
 import { StatusBadge } from "../../components/StatusBadge";
 import { api } from "../../lib/api";
@@ -33,6 +46,7 @@ export function ProfilesPage() {
   const [selectedProfileId, setSelectedProfileId] = useState("");
   const [formState, setFormState] = useState<ProfileFormState>(buildProfileForm());
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<"info" | "danger">("info");
 
   const profiles = accessControlQuery.data?.profiles ?? [];
   const selectedProfile = profiles.find((profile) => profile.id === selectedProfileId) ?? profiles[0];
@@ -56,6 +70,7 @@ export function ProfilesPage() {
   const saveProfileMutation = useMutation({
     mutationFn: api.saveAccessProfile,
     onSuccess: async (response) => {
+      setNoticeTone("info");
       setNotice(response.message);
       setSelectedProfileId(response.item.id);
       setFormState(buildProfileForm(response.item));
@@ -66,6 +81,7 @@ export function ProfilesPage() {
       }
     },
     onError: (mutationError) => {
+      setNoticeTone("danger");
       setNotice(mutationError instanceof Error ? mutationError.message : "Unable to save the access profile.");
     },
   });
@@ -91,162 +107,171 @@ export function ProfilesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="atlas-note rounded-[28px] p-5 text-sm leading-7">
-        Profiles are the clean way to assign access. Build a profile once, then assign it to the people who can sign in under Settings / Users.
-      </section>
+    <div className="d-grid gap-4">
+      <CAlert color="info" className="mb-0">
+        Profiles are the clean way to assign access. Build a profile once, then assign it to the people who can sign in under
+        Settings / Users.
+      </CAlert>
 
       {accessControlQuery.isLoading ? (
-        <section className="atlas-panel rounded-[28px] px-5 py-12 text-center text-sm text-atlas-muted">
-          Loading access profiles...
-        </section>
+        <CCard className="shadow-sm">
+          <CCardBody className="py-5 text-center text-body-secondary">
+            <CSpinner color="primary" className="mb-3" />
+            <div>Loading access profiles...</div>
+          </CCardBody>
+        </CCard>
       ) : accessControlQuery.isError ? (
-        <section className="atlas-error rounded-[28px] px-5 py-5 text-sm leading-6">
+        <CAlert color="danger" className="mb-0">
           {accessControlQuery.error instanceof Error ? accessControlQuery.error.message : "Unable to load the access profiles."}
-        </section>
+        </CAlert>
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <section className="atlas-panel rounded-[30px] p-4">
-            <div className="flex items-center justify-between gap-3 px-2 py-2">
-              <div>
-                <p className="text-sm font-semibold text-atlas">Access Profiles</p>
-                <p className="mt-1 text-xs uppercase tracking-[0.16em] text-atlas-dim">{profiles.length} profiles</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedProfileId("");
-                  setFormState(buildProfileForm());
-                  setNotice("");
-                }}
-                className="atlas-secondary-button rounded-2xl px-4 py-2 text-sm font-semibold"
-              >
-                New Profile
-              </button>
-            </div>
+        <CRow className="g-4">
+          <CCol xl={4}>
+            <CCard className="h-100 shadow-sm">
+              <CCardHeader className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                  <p className="mb-1 fw-semibold">Access Profiles</p>
+                  <p className="mb-0 small text-body-secondary">{profiles.length} profiles</p>
+                </div>
+                <CButton
+                  color="secondary"
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedProfileId("");
+                    setFormState(buildProfileForm());
+                    setNotice("");
+                    setNoticeTone("info");
+                  }}
+                >
+                  New Profile
+                </CButton>
+              </CCardHeader>
 
-            <div className="mt-3 space-y-3">
-              {profiles.map((profile) => {
-                const isSelected = profile.id === (selectedProfileId || selectedProfile?.id);
-                return (
-                  <button
-                    key={profile.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedProfileId(profile.id);
-                      setNotice("");
-                    }}
-                    className={`w-full rounded-[24px] border px-4 py-4 text-left transition ${
-                      isSelected
-                        ? "border-[rgba(201,74,99,0.26)] bg-[rgba(201,74,99,0.08)]"
-                        : "border-[rgba(23,32,42,0.08)] bg-[rgba(255,255,255,0.72)] hover:border-[rgba(23,32,42,0.14)]"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-atlas">{profile.name}</p>
-                        <p className="mt-2 text-sm leading-6 text-atlas-muted">{profile.description ?? "No description set."}</p>
-                      </div>
-                      {profile.is_system_profile ? <StatusBadge label="System" tone="info" /> : null}
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <StatusBadge label={`${profile.permissions.length} permissions`} tone="neutral" />
-                      <StatusBadge label={`${profile.assigned_user_count} users`} tone="neutral" />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
+              <CCardBody className="p-0">
+                <div className="list-group list-group-flush">
+                  {profiles.map((profile) => {
+                    const isSelected = profile.id === (selectedProfileId || selectedProfile?.id);
 
-          <section className="atlas-panel rounded-[30px] p-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-atlas-accent-soft text-[0.74rem] font-semibold uppercase tracking-[0.18em]">Access Design</p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-atlas">
-                  {formState.id ? "Edit Profile" : "Create Profile"}
-                </h2>
-                <p className="mt-3 max-w-3xl text-sm leading-7 text-atlas-muted">
-                  Keep profiles small and clear so admins can assign them without guessing what each person will see.
-                </p>
-              </div>
-              {formState.id && selectedProfile?.is_system_profile ? <StatusBadge label="System profile" tone="info" /> : null}
-            </div>
+                    return (
+                      <button
+                        key={profile.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedProfileId(profile.id);
+                          setNotice("");
+                          setNoticeTone("info");
+                        }}
+                        className={`list-group-item list-group-item-action text-start ${isSelected ? "active" : ""}`}
+                      >
+                        <div className="d-flex align-items-start justify-content-between gap-3">
+                          <div>
+                            <div className="fw-semibold">{profile.name}</div>
+                            <div className={`small ${isSelected ? "text-white-50" : "text-body-secondary"}`}>
+                              {profile.description ?? "No description set."}
+                            </div>
+                          </div>
+                          {profile.is_system_profile ? <StatusBadge label="System" tone="info" /> : null}
+                        </div>
 
-            {notice ? <div className="atlas-pill-accent mt-5 rounded-[24px] px-4 py-3 text-sm">{notice}</div> : null}
+                        <div className="d-flex flex-wrap gap-2 mt-3">
+                          <StatusBadge label={`${profile.permissions.length} permissions`} />
+                          <StatusBadge label={`${profile.assigned_user_count} users`} />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </CCardBody>
+            </CCard>
+          </CCol>
 
-            <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
-              <div className="grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-atlas-soft">Profile Name</span>
-                  <input
-                    className="atlas-field w-full rounded-2xl px-4 py-3"
-                    value={formState.name}
-                    onChange={(event) => setFormState((current) => ({ ...current, name: event.target.value }))}
-                    placeholder="Identity Operators"
-                    required
-                  />
-                </label>
+          <CCol xl={8}>
+            <CCard className="shadow-sm">
+              <CCardHeader className="d-flex flex-wrap align-items-start justify-content-between gap-3">
+                <div>
+                  <p className="mb-1 small fw-semibold text-body-secondary text-uppercase">Access Design</p>
+                  <h2 className="h4 mb-2">{formState.id ? "Edit Profile" : "Create Profile"}</h2>
+                  <p className="mb-0 text-body-secondary">
+                    Keep profiles small and clear so admins can assign them without guessing what each person will see.
+                  </p>
+                </div>
+                {formState.id && selectedProfile?.is_system_profile ? <StatusBadge label="System profile" tone="info" /> : null}
+              </CCardHeader>
 
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-atlas-soft">Description</span>
-                  <input
-                    className="atlas-field w-full rounded-2xl px-4 py-3"
-                    value={formState.description}
-                    onChange={(event) => setFormState((current) => ({ ...current, description: event.target.value }))}
-                    placeholder="Focused access for identity workflows and staged library review."
-                  />
-                </label>
-              </div>
+              <CCardBody>
+                {notice ? (
+                  <CAlert color={noticeTone} className="mb-4">
+                    {notice}
+                  </CAlert>
+                ) : null}
 
-              <div className="space-y-5">
-                {Object.entries(permissionGroups).map(([groupName, permissions]) => (
-                  <section key={groupName} className="atlas-panel-soft rounded-[28px] p-5">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-semibold text-atlas">{groupName}</p>
-                      <span className="text-xs uppercase tracking-[0.16em] text-atlas-dim">{permissions.length} permissions</span>
-                    </div>
+                <form onSubmit={handleSubmit}>
+                  <CRow className="g-3">
+                    <CCol lg={5}>
+                      <CFormLabel htmlFor="profile-name">Profile Name</CFormLabel>
+                      <CFormInput
+                        id="profile-name"
+                        value={formState.name}
+                        onChange={(event) => setFormState((current) => ({ ...current, name: event.target.value }))}
+                        placeholder="Identity Operators"
+                        required
+                      />
+                    </CCol>
 
-                    <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                      {permissions.map((permission) => {
-                        const isChecked = formState.permissions.includes(permission.key);
-                        return (
-                          <label
-                            key={permission.key}
-                            className={`flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-4 transition ${
-                              isChecked
-                                ? "border-[rgba(201,74,99,0.24)] bg-[rgba(201,74,99,0.08)]"
-                                : "border-[rgba(23,32,42,0.08)] bg-white/72 hover:border-[rgba(23,32,42,0.14)]"
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => togglePermission(permission.key)}
-                              className="mt-1 h-4 w-4 rounded border-[rgba(23,32,42,0.18)] text-[var(--atlas-accent)] focus:ring-[var(--atlas-accent)]"
-                            />
-                            <span>
-                              <span className="block text-sm font-semibold text-atlas">{permission.label}</span>
-                              <span className="mt-1 block text-sm leading-6 text-atlas-muted">{permission.description}</span>
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </section>
-                ))}
-              </div>
+                    <CCol lg={7}>
+                      <CFormLabel htmlFor="profile-description">Description</CFormLabel>
+                      <CFormInput
+                        id="profile-description"
+                        value={formState.description}
+                        onChange={(event) => setFormState((current) => ({ ...current, description: event.target.value }))}
+                        placeholder="Focused access for identity workflows and staged library review."
+                      />
+                    </CCol>
+                  </CRow>
 
-              <button
-                type="submit"
-                disabled={saveProfileMutation.isPending}
-                className="atlas-primary-button rounded-2xl px-5 py-3 text-sm font-semibold"
-              >
-                {saveProfileMutation.isPending ? "Saving Profile..." : formState.id ? "Update Profile" : "Create Profile"}
-              </button>
-            </form>
-          </section>
-        </div>
+                  <div className="d-grid gap-4 mt-4">
+                    {Object.entries(permissionGroups).map(([groupName, permissions]) => (
+                      <CCard key={groupName} className="border-0 bg-body-tertiary">
+                        <CCardHeader className="bg-transparent d-flex flex-wrap align-items-center justify-content-between gap-2">
+                          <span className="fw-semibold">{groupName}</span>
+                          <span className="small text-body-secondary">{permissions.length} permissions</span>
+                        </CCardHeader>
+
+                        <CCardBody>
+                          <CRow className="g-3">
+                            {permissions.map((permission) => {
+                              const isChecked = formState.permissions.includes(permission.key);
+
+                              return (
+                                <CCol key={permission.key} lg={6}>
+                                  <div className={`h-100 rounded border p-3 ${isChecked ? "border-primary bg-primary bg-opacity-10" : ""}`}>
+                                    <CFormCheck
+                                      id={`permission-${permission.key}`}
+                                      checked={isChecked}
+                                      onChange={() => togglePermission(permission.key)}
+                                      label={permission.label}
+                                    />
+                                    <div className="mt-2 small text-body-secondary">{permission.description}</div>
+                                  </div>
+                                </CCol>
+                              );
+                            })}
+                          </CRow>
+                        </CCardBody>
+                      </CCard>
+                    ))}
+                  </div>
+
+                  <div className="mt-4">
+                    <CButton type="submit" color="primary" disabled={saveProfileMutation.isPending}>
+                      {saveProfileMutation.isPending ? "Saving Profile..." : formState.id ? "Update Profile" : "Create Profile"}
+                    </CButton>
+                  </div>
+                </form>
+              </CCardBody>
+            </CCard>
+          </CCol>
+        </CRow>
       )}
     </div>
   );

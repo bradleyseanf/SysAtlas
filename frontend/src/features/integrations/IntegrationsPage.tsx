@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { CAlert, CBadge, CButton, CCard, CCardBody, CCardHeader, CFormInput, CInputGroup, CInputGroupText, CSpinner, CTable } from "@coreui/react";
+import CIcon from "@coreui/icons-react";
+import { cilSearch } from "@coreui/icons";
 import { useLocation, useSearchParams } from "react-router-dom";
 
 import { StatusBadge } from "../../components/StatusBadge";
@@ -58,6 +60,7 @@ export function IntegrationsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [providerSearch, setProviderSearch] = useState("");
   const [notice, setNotice] = useState("");
+  const [noticeColor, setNoticeColor] = useState<"info" | "success" | "warning" | "danger">("info");
   const [launchReadyProviders, setLaunchReadyProviders] = useState<Record<string, boolean>>({});
   const launchWatchersRef = useRef<Record<string, number>>({});
 
@@ -76,12 +79,14 @@ export function IntegrationsPage() {
   const saveMutation = useMutation({
     mutationFn: api.saveIntegration,
     onSuccess: async (response) => {
+      setNoticeColor("success");
       setNotice(response.message);
       await queryClient.invalidateQueries({ queryKey: ["integrations"] });
       await queryClient.invalidateQueries({ queryKey: ["users"] });
       await queryClient.invalidateQueries({ queryKey: ["devices"] });
     },
     onError: (mutationError) => {
+      setNoticeColor("danger");
       setNotice(mutationError instanceof Error ? mutationError.message : "Unable to save the integration.");
     },
   });
@@ -93,9 +98,7 @@ export function IntegrationsPage() {
   }, []);
 
   const allConnections = connectionsQuery.data?.items ?? [];
-  const connectedConnections = allConnections.filter(
-    (item) => item.status === "configured" || item.status === "connected"
-  );
+  const connectedConnections = allConnections.filter((item) => item.status === "configured" || item.status === "connected");
   const allConnectionMap = new Map(allConnections.map((item) => [item.provider, item]));
 
   const moduleFilteredProviders = (() => {
@@ -167,14 +170,16 @@ export function IntegrationsPage() {
     return !isConnected(connection) && (launchReadyProviders[providerId] || connection?.status === "authorization_pending");
   }
 
-  function handleLaunch(provider: IntegrationProvider, connection: IntegrationConnection | undefined) {
+  function handleLaunch(provider: IntegrationProvider) {
     const popup = window.open(provider.launch_url, `sysatlas-${provider.id}`, popupFeatures());
     if (!popup) {
+      setNoticeColor("warning");
       setNotice(`Allow pop-ups to open the ${provider.name} connection window.`);
       return;
     }
 
     popup.focus();
+    setNoticeColor("info");
     setNotice(`${provider.name} opened in a secure provider session. Finish sign-in there, then return here to connect it.`);
     setLaunchReadyProviders((current) => ({ ...current, [provider.id]: false }));
 
@@ -195,159 +200,156 @@ export function IntegrationsPage() {
       }
 
       setLaunchReadyProviders((current) => ({ ...current, [provider.id]: true }));
+      setNoticeColor("info");
       setNotice(`${provider.name} session closed. If access was granted, connect it here.`);
     }, 500);
   }
 
   return (
-    <div className="space-y-6">
-      <section className="atlas-note rounded-[28px] p-5 text-sm leading-7">
-        Integrations open in provider-hosted browser sessions. They only show as connected after the live provider link is saved here.
-      </section>
+    <div className="d-grid gap-4">
+      <CAlert color="info" className="mb-0">
+        Integrations open in provider-hosted browser sessions. They only show as connected after the live provider link is saved
+        here.
+      </CAlert>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="d-flex flex-wrap gap-2">
         {filterOptions.map((option) => (
-          <button
+          <CButton
             key={option.id}
-            type="button"
+            color={moduleFilter === option.id ? "primary" : "secondary"}
+            variant={moduleFilter === option.id ? undefined : "outline"}
             onClick={() => handleFilterChange(option.id)}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-              moduleFilter === option.id ? "atlas-pill-accent" : "atlas-secondary-button text-atlas-soft"
-            }`}
           >
             {option.label}
-          </button>
+          </CButton>
         ))}
       </div>
 
       {connectionsQuery.isLoading || catalogQuery.isLoading ? (
-        <section className="atlas-panel rounded-[28px] px-5 py-12 text-center text-sm text-atlas-muted">
-          Loading integration catalog...
-        </section>
+        <CCard className="shadow-sm">
+          <CCardBody className="py-5 text-center text-body-secondary">
+            <CSpinner color="primary" className="mb-3" />
+            <div>Loading integration catalog...</div>
+          </CCardBody>
+        </CCard>
       ) : connectionsQuery.isError || catalogQuery.isError ? (
-        <section className="atlas-error rounded-[28px] px-5 py-5 text-sm leading-6">
+        <CAlert color="danger" className="mb-0">
           {connectionsQuery.error instanceof Error
             ? connectionsQuery.error.message
             : catalogQuery.error instanceof Error
               ? catalogQuery.error.message
               : "Unable to load integrations."}
-        </section>
+        </CAlert>
       ) : (
-        <>
-          <section className="atlas-panel overflow-hidden rounded-[30px]">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[rgba(23,32,42,0.08)] px-5 py-4">
-              <div>
-                <p className="text-sm font-semibold text-atlas">Integration Providers</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <span className="atlas-pill rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]">
-                    {providerRows.length} shown
-                    {moduleFilter === "all" ? "" : ` in ${humanizeKey(moduleFilter)}`}
-                  </span>
-                  <span className="atlas-pill-accent rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]">
-                    {connectedConnections.length} connected
-                  </span>
-                </div>
+        <CCard className="shadow-sm">
+          <CCardHeader className="d-flex flex-wrap align-items-start justify-content-between gap-3">
+            <div>
+              <p className="mb-1 fw-semibold">Integration Providers</p>
+              <div className="d-flex flex-wrap gap-2">
+                <CBadge color="secondary">
+                  {providerRows.length} shown
+                  {moduleFilter === "all" ? "" : ` in ${humanizeKey(moduleFilter)}`}
+                </CBadge>
+                <CBadge color="success">{connectedConnections.length} connected</CBadge>
               </div>
+            </div>
 
-              <label className="relative w-full max-w-xs">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-atlas-dim" />
-                <input
-                  className="atlas-field w-full rounded-2xl py-2.5 pl-10 pr-4 text-sm"
+            <div style={{ maxWidth: "22rem", width: "100%" }}>
+              <CInputGroup>
+                <CInputGroupText>
+                  <CIcon icon={cilSearch} />
+                </CInputGroupText>
+                <CFormInput
                   value={providerSearch}
                   onChange={(event) => setProviderSearch(event.target.value)}
                   placeholder="Search integrations"
                 />
-              </label>
+              </CInputGroup>
             </div>
+          </CCardHeader>
 
-            {providerRows.length === 0 ? (
-              <div className="px-6 py-10 text-sm text-atlas-muted">No integrations match the current filter.</div>
-            ) : (
-              <>
-                {notice ? (
-                  <div className="border-b border-[rgba(23,32,42,0.08)] px-5 py-4">
-                    <div className="atlas-pill-accent rounded-[24px] px-4 py-3 text-sm">{notice}</div>
-                  </div>
-                ) : null}
+          {providerRows.length === 0 ? (
+            <CCardBody className="text-body-secondary">No integrations match the current filter.</CCardBody>
+          ) : (
+            <>
+              {notice ? (
+                <div className="px-4 pt-4">
+                  <CAlert color={noticeColor} className="mb-0">
+                    {notice}
+                  </CAlert>
+                </div>
+              ) : null}
 
-                <div className="overflow-x-auto">
-                  <table className="min-w-full table-fixed border-collapse text-left">
-                    <thead className="atlas-table-head text-[0.7rem] font-semibold uppercase tracking-[0.18em]">
-                      <tr>
-                        <th className="w-[34%] px-4 py-3">Integration</th>
-                        <th className="hidden w-[13%] px-3 py-3 lg:table-cell">Category</th>
-                        <th className="hidden w-[14%] px-3 py-3 xl:table-cell">Modules</th>
-                        <th className="w-[12%] px-3 py-3">Status</th>
-                        <th className="hidden w-[13%] px-3 py-3 md:table-cell">Session Expires</th>
-                        <th className="hidden w-[14%] px-3 py-3 lg:table-cell">Updated</th>
-                        <th className="w-[14%] px-4 py-3 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {providerRows.map(({ provider, connection }) => {
-                        const providerIsConnected = isConnected(connection);
-                        const providerCanComplete = canCompleteConnection(provider.id, connection);
-                        const actionLabel = providerIsConnected ? "Connection" : "Connect";
+              <CCardBody className={notice ? "pt-3" : undefined}>
+                <CTable hover responsive className="mb-0 align-middle">
+                  <thead>
+                    <tr>
+                      <th>Integration</th>
+                      <th className="d-none d-lg-table-cell">Category</th>
+                      <th className="d-none d-xl-table-cell">Modules</th>
+                      <th>Status</th>
+                      <th className="d-none d-md-table-cell">Session Expires</th>
+                      <th className="d-none d-lg-table-cell">Updated</th>
+                      <th className="text-end">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {providerRows.map(({ provider, connection }) => {
+                      const providerIsConnected = isConnected(connection);
+                      const providerCanComplete = canCompleteConnection(provider.id, connection);
+                      const actionLabel = providerCanComplete ? "Complete" : provider.launch_button_label;
 
-                        return (
-                          <tr key={provider.id} className="atlas-table-row border-t border-[rgba(23,32,42,0.06)] text-sm">
-                            <td className="align-top px-4 py-4">
-                              <div className="flex items-start gap-3">
-                                <IntegrationLogo providerId={provider.id} providerName={provider.name} size="sm" />
-                                <div className="min-w-0">
-                                  <p className="truncate font-semibold text-atlas">{provider.name}</p>
-                                  <p className="mt-1 text-xs leading-5 text-atlas-dim">{provider.description}</p>
-                                  <div className="mt-2 space-y-1 text-[0.72rem] text-atlas-dim lg:hidden">
-                                    <p>{provider.category}</p>
-                                    <p>{provider.supported_modules.map(humanizeKey).join(", ")}</p>
-                                  </div>
+                      return (
+                        <tr key={provider.id}>
+                          <td>
+                            <div className="d-flex align-items-start gap-3">
+                              <IntegrationLogo providerId={provider.id} providerName={provider.name} size="sm" />
+                              <div className="min-w-0">
+                                <div className="fw-semibold">{provider.name}</div>
+                                <div className="small text-body-secondary">{provider.description}</div>
+                                <div className="small text-body-secondary d-lg-none mt-2">
+                                  <div>{provider.category}</div>
+                                  <div>{provider.supported_modules.map(humanizeKey).join(", ")}</div>
                                 </div>
                               </div>
-                            </td>
-                            <td className="hidden align-top px-3 py-4 text-atlas-muted lg:table-cell">{provider.category}</td>
-                            <td className="hidden align-top px-3 py-4 text-atlas-muted xl:table-cell">
-                              {provider.supported_modules.map(humanizeKey).join(", ")}
-                            </td>
-                            <td className="align-top px-3 py-4">
-                              <StatusBadge
-                                label={connection ? connectionLabel(connection.status) : "Not Connected"}
-                                tone={connection ? connectionTone(connection.status) : "neutral"}
-                              />
-                            </td>
-                            <td className="hidden align-top px-3 py-4 text-atlas-muted md:table-cell">{sessionExpiresLabel(connection)}</td>
-                            <td className="hidden align-top px-3 py-4 text-atlas-muted lg:table-cell">
-                              {formatDateTime(connection?.updated_at ?? null)}
-                            </td>
-                            <td className="align-top px-4 py-4">
-                              <div className="flex justify-end">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (providerCanComplete) {
-                                      saveProviderConnection(provider, connection);
-                                      return;
-                                    }
+                            </div>
+                          </td>
+                          <td className="d-none d-lg-table-cell">{provider.category}</td>
+                          <td className="d-none d-xl-table-cell">{provider.supported_modules.map(humanizeKey).join(", ")}</td>
+                          <td>
+                            <StatusBadge
+                              label={connection ? connectionLabel(connection.status) : "Not Connected"}
+                              tone={connection ? connectionTone(connection.status) : "neutral"}
+                            />
+                          </td>
+                          <td className="d-none d-md-table-cell">{sessionExpiresLabel(connection)}</td>
+                          <td className="d-none d-lg-table-cell">{formatDateTime(connection?.updated_at ?? null)}</td>
+                          <td className="text-end">
+                            <CButton
+                              size="sm"
+                              color={providerCanComplete ? "primary" : providerIsConnected ? "secondary" : "secondary"}
+                              variant={providerCanComplete ? undefined : "outline"}
+                              onClick={() => {
+                                if (providerCanComplete) {
+                                  saveProviderConnection(provider, connection);
+                                  return;
+                                }
 
-                                    handleLaunch(provider, connection);
-                                  }}
-                                  className={`rounded-2xl px-4 py-2 text-sm font-semibold ${
-                                    providerCanComplete ? "atlas-primary-button" : "atlas-secondary-button"
-                                  }`}
-                                >
-                                  {actionLabel}
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-          </section>
-        </>
+                                handleLaunch(provider);
+                              }}
+                            >
+                              {actionLabel}
+                            </CButton>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </CTable>
+              </CCardBody>
+            </>
+          )}
+        </CCard>
       )}
     </div>
   );

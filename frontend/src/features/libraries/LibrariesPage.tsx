@@ -1,7 +1,22 @@
 import type { ReactNode } from "react";
 import { useDeferredValue, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Folder, FolderOpen, Search } from "lucide-react";
+import {
+  CAlert,
+  CBadge,
+  CButton,
+  CCard,
+  CCardBody,
+  CCardHeader,
+  CCol,
+  CFormInput,
+  CInputGroup,
+  CInputGroupText,
+  CRow,
+  CSpinner,
+} from "@coreui/react";
+import CIcon from "@coreui/icons-react";
+import { cilChevronRight, cilFolder, cilFolderOpen, cilSearch } from "@coreui/icons";
 import { useNavigate } from "react-router-dom";
 
 import { EmptyState } from "../../components/EmptyState";
@@ -111,58 +126,57 @@ export function LibrariesPage() {
     const isSelected = selectedNode?.id === node.id;
 
     return (
-      <div key={node.id}>
-        <div
-          className={`flex items-center gap-2 rounded-2xl border px-3 py-2 transition ${
-            isSelected
-              ? "border-[rgba(201,74,99,0.22)] bg-[rgba(201,74,99,0.08)] text-atlas"
-              : "border-transparent text-atlas-soft hover:border-[rgba(23,32,42,0.08)] hover:bg-white/72 hover:text-atlas"
-          }`}
-          style={{ paddingLeft: `${0.85 + depth * 1.05}rem` }}
-        >
+      <div key={node.id} className="mb-1" style={{ marginLeft: depth ? `${depth * 1.1}rem` : undefined }}>
+        <div className={`d-flex align-items-center gap-2 rounded border ${isSelected ? "border-primary bg-primary bg-opacity-10" : "border-transparent"}`}>
           {hasChildren ? (
             <button
               type="button"
               onClick={() => toggleNode(node.id)}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-atlas-dim transition hover:bg-[rgba(23,32,42,0.05)] hover:text-atlas"
+              className="btn btn-sm btn-ghost-secondary border-0 ms-1"
               aria-label={isExpanded ? `Collapse ${node.name}` : `Expand ${node.name}`}
             >
-              <ChevronRight className={`h-4 w-4 transition ${isExpanded ? "rotate-90" : ""}`} />
+              <CIcon icon={cilChevronRight} style={{ transform: isExpanded ? "rotate(90deg)" : undefined }} />
             </button>
           ) : (
-            <span className="block h-7 w-7" />
+            <span className="d-inline-block ms-1" style={{ width: "2rem" }} />
           )}
 
-          <button type="button" onClick={() => setSelectedNodeId(node.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-            {hasChildren && isExpanded ? (
-              <FolderOpen className="h-4 w-4 text-atlas-accent" />
-            ) : (
-              <Folder className="h-4 w-4 text-atlas-dim" />
-            )}
-            <span className="truncate text-sm font-medium">{node.name}</span>
+          <button
+            type="button"
+            onClick={() => setSelectedNodeId(node.id)}
+            className="flex-grow-1 border-0 bg-transparent px-0 py-2 pe-2 text-start"
+          >
+            <div className="d-flex align-items-center justify-content-between gap-2">
+              <span className="d-flex min-w-0 align-items-center gap-2">
+                <CIcon icon={hasChildren && isExpanded ? cilFolderOpen : cilFolder} className="flex-shrink-0 text-body-secondary" />
+                <span className="small fw-semibold text-truncate">{node.name}</span>
+              </span>
+              <span className="small text-body-secondary text-uppercase d-none d-md-inline">{humanizeKey(node.node_type)}</span>
+            </div>
           </button>
-
-          <span className="hidden text-xs uppercase tracking-[0.14em] text-atlas-dim md:block">{humanizeKey(node.node_type)}</span>
         </div>
 
-        {hasChildren && isExpanded ? <div className="mt-1 space-y-1">{node.children.map((child) => renderNode(child, depth + 1))}</div> : null}
+        {hasChildren && isExpanded ? <div className="mt-1">{node.children.map((child) => renderNode(child, depth + 1))}</div> : null}
       </div>
     );
   }
 
   if (librariesQuery.isLoading) {
     return (
-      <section className="atlas-panel rounded-[28px] px-5 py-12 text-center text-sm text-atlas-muted">
-        Loading library sources...
-      </section>
+      <CCard className="shadow-sm">
+        <CCardBody className="py-5 text-center text-body-secondary">
+          <CSpinner color="primary" className="mb-3" />
+          <div>Loading library sources...</div>
+        </CCardBody>
+      </CCard>
     );
   }
 
   if (librariesQuery.isError) {
     return (
-      <section className="atlas-error rounded-[28px] px-5 py-5 text-sm leading-6">
+      <CAlert color="danger" className="mb-0">
         {librariesQuery.error instanceof Error ? librariesQuery.error.message : "Unable to load libraries."}
-      </section>
+      </CAlert>
     );
   }
 
@@ -178,143 +192,159 @@ export function LibrariesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="d-grid gap-4">
       {canManageIntegrations ? (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => navigate(withDevMode("/settings/integrations?module=libraries"))}
-            className="atlas-primary-button rounded-2xl px-4 py-2.5 text-sm font-semibold"
-          >
+        <div className="d-flex justify-content-end">
+          <CButton color="primary" onClick={() => navigate(withDevMode("/settings/integrations?module=libraries"))}>
             Manage Sources
-          </button>
+          </CButton>
         </div>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.88fr)_minmax(320px,0.92fr)]">
-        <section className="atlas-panel overflow-hidden rounded-[30px]">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[rgba(23,32,42,0.08)] px-5 py-4">
-            <div>
-              <p className="text-sm font-semibold text-atlas">Connected Library Sources</p>
-              <p className="mt-1 text-sm text-atlas-muted">SharePoint and Teams sources appear here as integration sessions are linked.</p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="relative w-full min-w-[220px] max-w-xs">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-atlas-dim" />
-                <input
-                  className="atlas-field w-full rounded-2xl py-2.5 pl-10 pr-4 text-sm"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search sources"
-                />
-              </label>
-
-              <button
-                type="button"
-                onClick={() => setExpandedNodeIds(expandableNodeIds)}
-                className="atlas-secondary-button rounded-2xl px-4 py-2.5 text-sm font-semibold"
-              >
-                Expand
-              </button>
-              <button
-                type="button"
-                onClick={() => setExpandedNodeIds([])}
-                className="atlas-secondary-button rounded-2xl px-4 py-2.5 text-sm font-semibold"
-              >
-                Collapse
-              </button>
-            </div>
-          </div>
-
-          <div className="max-h-[700px] overflow-auto px-4 py-4">
-            {visibleItems.length ? (
-              <div className="space-y-1">{visibleItems.map((node) => renderNode(node))}</div>
-            ) : (
-              <div className="rounded-3xl border border-dashed border-[rgba(23,32,42,0.12)] px-6 py-10 text-center text-sm text-atlas-muted">
-                No connected library sources match the current search.
+      <CRow className="g-4">
+        <CCol xl={5}>
+          <CCard className="h-100 shadow-sm">
+            <CCardHeader className="d-flex flex-wrap align-items-start justify-content-between gap-3">
+              <div>
+                <p className="mb-1 fw-semibold">Connected Library Sources</p>
+                <p className="mb-0 text-body-secondary">
+                  SharePoint and Teams sources appear here as integration sessions are linked.
+                </p>
               </div>
-            )}
-          </div>
-        </section>
 
-        <section className="atlas-panel rounded-[30px] p-6">
-          {selectedNode ? (
-            <>
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="text-atlas-accent-soft text-[0.74rem] font-semibold uppercase tracking-[0.18em]">{selectedNode.source}</p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-atlas">{selectedNode.name}</h2>
-                  <p className="mt-3 text-sm leading-7 text-atlas-muted">
-                    {selectedNode.notes ?? "This source is available for library staging once connected integrations are ready."}
-                  </p>
+              <div className="d-grid gap-2" style={{ maxWidth: "22rem", width: "100%" }}>
+                <CInputGroup>
+                  <CInputGroupText>
+                    <CIcon icon={cilSearch} />
+                  </CInputGroupText>
+                  <CFormInput value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search sources" />
+                </CInputGroup>
+
+                <div className="d-flex gap-2">
+                  <CButton color="secondary" variant="outline" size="sm" onClick={() => setExpandedNodeIds(expandableNodeIds)}>
+                    Expand
+                  </CButton>
+                  <CButton color="secondary" variant="outline" size="sm" onClick={() => setExpandedNodeIds([])}>
+                    Collapse
+                  </CButton>
                 </div>
-                <StatusBadge label={humanizeKey(selectedNode.stage_status)} tone={stageTone(selectedNode.stage_status)} />
               </div>
+            </CCardHeader>
 
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <article className="atlas-panel-soft rounded-3xl p-4">
-                  <p className="text-atlas-accent-soft text-[0.72rem] font-semibold uppercase tracking-[0.16em]">Path</p>
-                  <p className="mt-2 text-sm font-medium text-atlas">{selectedNode.path}</p>
-                </article>
-                <article className="atlas-panel-soft rounded-3xl p-4">
-                  <p className="text-atlas-accent-soft text-[0.72rem] font-semibold uppercase tracking-[0.16em]">Type</p>
-                  <p className="mt-2 text-sm font-medium text-atlas">{humanizeKey(selectedNode.node_type)}</p>
-                </article>
-                <article className="atlas-panel-soft rounded-3xl p-4">
-                  <p className="text-atlas-accent-soft text-[0.72rem] font-semibold uppercase tracking-[0.16em]">Visible Entries</p>
-                  <p className="mt-2 text-sm font-medium text-atlas">{selectedNode.staged_item_count}</p>
-                </article>
-                <article className="atlas-panel-soft rounded-3xl p-4">
-                  <p className="text-atlas-accent-soft text-[0.72rem] font-semibold uppercase tracking-[0.16em]">Last Updated</p>
-                  <p className="mt-2 text-sm font-medium text-atlas">{formatDateTime(selectedNode.last_synced_at)}</p>
-                </article>
-              </div>
-
-              <section className="atlas-panel-soft mt-6 rounded-[28px] p-5">
-                <p className="text-sm font-semibold text-atlas">Assigned Security Profiles</p>
-                {selectedNode.security_profiles.length ? (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {selectedNode.security_profiles.map((profileName) => (
-                      <StatusBadge key={profileName} label={profileName} tone="info" />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="mt-3 text-sm text-atlas-muted">No library-level security profiles are mapped yet.</p>
-                )}
-              </section>
-
-              <section className="atlas-panel-soft mt-6 rounded-[28px] p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-atlas">Children</p>
-                  <span className="text-xs uppercase tracking-[0.16em] text-atlas-dim">{selectedNode.children.length} shown</span>
+            <CCardBody className="overflow-auto" style={{ maxHeight: "45rem" }}>
+              {visibleItems.length ? (
+                <div>{visibleItems.map((node) => renderNode(node))}</div>
+              ) : (
+                <div className="rounded border border-2 p-4 text-center text-body-secondary" style={{ borderStyle: "dashed" }}>
+                  No connected library sources match the current search.
                 </div>
+              )}
+            </CCardBody>
+          </CCard>
+        </CCol>
 
-                {selectedNode.children.length ? (
-                  <div className="mt-4 space-y-3">
-                    {selectedNode.children.map((child) => (
-                      <button
-                        key={child.id}
-                        type="button"
-                        onClick={() => setSelectedNodeId(child.id)}
-                        className="flex w-full items-center justify-between rounded-2xl border border-[rgba(23,32,42,0.08)] bg-white/72 px-4 py-3 text-left transition hover:border-[rgba(201,74,99,0.24)] hover:bg-white"
-                      >
-                        <span>
-                          <span className="block text-sm font-semibold text-atlas">{child.name}</span>
-                          <span className="mt-1 block text-xs uppercase tracking-[0.14em] text-atlas-dim">{humanizeKey(child.node_type)}</span>
-                        </span>
-                        <StatusBadge label={humanizeKey(child.stage_status)} tone={stageTone(child.stage_status)} />
-                      </button>
-                    ))}
+        <CCol xl={7}>
+          <CCard className="h-100 shadow-sm">
+            <CCardBody>
+              {selectedNode ? (
+                <>
+                  <div className="d-flex flex-wrap align-items-start justify-content-between gap-3">
+                    <div>
+                      <p className="mb-2 small fw-semibold text-body-secondary text-uppercase">{selectedNode.source}</p>
+                      <h2 className="h3 mb-2">{selectedNode.name}</h2>
+                      <p className="mb-0 text-body-secondary">
+                        {selectedNode.notes ?? "This source is available for library staging once connected integrations are ready."}
+                      </p>
+                    </div>
+                    <StatusBadge label={humanizeKey(selectedNode.stage_status)} tone={stageTone(selectedNode.stage_status)} />
                   </div>
-                ) : (
-                  <p className="mt-4 text-sm text-atlas-muted">No child items under the selected source.</p>
-                )}
-              </section>
-            </>
-          ) : null}
-        </section>
-      </div>
+
+                  <CRow className="g-3 mt-1">
+                    <CCol sm={6}>
+                      <CCard className="h-100 border-0 bg-body-tertiary">
+                        <CCardBody>
+                          <p className="mb-2 small fw-semibold text-body-secondary text-uppercase">Path</p>
+                          <p className="mb-0">{selectedNode.path}</p>
+                        </CCardBody>
+                      </CCard>
+                    </CCol>
+                    <CCol sm={6}>
+                      <CCard className="h-100 border-0 bg-body-tertiary">
+                        <CCardBody>
+                          <p className="mb-2 small fw-semibold text-body-secondary text-uppercase">Type</p>
+                          <p className="mb-0">{humanizeKey(selectedNode.node_type)}</p>
+                        </CCardBody>
+                      </CCard>
+                    </CCol>
+                    <CCol sm={6}>
+                      <CCard className="h-100 border-0 bg-body-tertiary">
+                        <CCardBody>
+                          <p className="mb-2 small fw-semibold text-body-secondary text-uppercase">Visible Entries</p>
+                          <p className="mb-0">{selectedNode.staged_item_count}</p>
+                        </CCardBody>
+                      </CCard>
+                    </CCol>
+                    <CCol sm={6}>
+                      <CCard className="h-100 border-0 bg-body-tertiary">
+                        <CCardBody>
+                          <p className="mb-2 small fw-semibold text-body-secondary text-uppercase">Last Updated</p>
+                          <p className="mb-0">{formatDateTime(selectedNode.last_synced_at)}</p>
+                        </CCardBody>
+                      </CCard>
+                    </CCol>
+                  </CRow>
+
+                  <CCard className="border-0 bg-body-tertiary mt-4">
+                    <CCardHeader className="bg-transparent fw-semibold">Assigned Security Profiles</CCardHeader>
+                    <CCardBody>
+                      {selectedNode.security_profiles.length ? (
+                        <div className="d-flex flex-wrap gap-2">
+                          {selectedNode.security_profiles.map((profileName) => (
+                            <StatusBadge key={profileName} label={profileName} tone="info" />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mb-0 text-body-secondary">No library-level security profiles are mapped yet.</p>
+                      )}
+                    </CCardBody>
+                  </CCard>
+
+                  <CCard className="border-0 bg-body-tertiary mt-4">
+                    <CCardHeader className="d-flex flex-wrap align-items-center justify-content-between gap-2 bg-transparent">
+                      <span className="fw-semibold">Children</span>
+                      <CBadge color="secondary">{selectedNode.children.length} shown</CBadge>
+                    </CCardHeader>
+                    <CCardBody>
+                      {selectedNode.children.length ? (
+                        <div className="list-group">
+                          {selectedNode.children.map((child) => (
+                            <button
+                              key={child.id}
+                              type="button"
+                              onClick={() => setSelectedNodeId(child.id)}
+                              className="list-group-item list-group-item-action text-start"
+                            >
+                              <div className="d-flex align-items-start justify-content-between gap-3">
+                                <div>
+                                  <div className="fw-semibold">{child.name}</div>
+                                  <div className="small text-body-secondary text-uppercase">{humanizeKey(child.node_type)}</div>
+                                </div>
+                                <StatusBadge label={humanizeKey(child.stage_status)} tone={stageTone(child.stage_status)} />
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mb-0 text-body-secondary">No child items under the selected source.</p>
+                      )}
+                    </CCardBody>
+                  </CCard>
+                </>
+              ) : null}
+            </CCardBody>
+          </CCard>
+        </CCol>
+      </CRow>
     </div>
   );
 }

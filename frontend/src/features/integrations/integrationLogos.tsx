@@ -17,15 +17,21 @@ type IntegrationLogoProps = {
 };
 
 const sizeClasses: Record<LogoSize, string> = {
-  sm: "h-9 w-9 rounded-lg",
-  md: "h-10 w-10 rounded-xl",
-  lg: "h-14 w-14 rounded-2xl",
+  sm: "0.5rem",
+  md: "0.75rem",
+  lg: "1rem",
 };
 
-const imageSizeClasses: Record<LogoSize, string> = {
-  sm: "h-5 w-5",
-  md: "h-6 w-6",
-  lg: "h-8 w-8",
+const boxSizes: Record<LogoSize, number> = {
+  sm: 36,
+  md: 40,
+  lg: 56,
+};
+
+const imageSizes: Record<LogoSize, number> = {
+  sm: 20,
+  md: 24,
+  lg: 32,
 };
 
 function svgDataUrl(markup: string) {
@@ -177,13 +183,23 @@ export function IntegrationLogo({ providerId, providerName, size = "md" }: Integ
   return (
     <div
       aria-hidden="true"
-      className={`flex shrink-0 items-center justify-center border border-white/12 bg-[rgba(255,255,255,0.94)] shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] ${sizeClasses[size]}`}
+      className="d-flex flex-shrink-0 align-items-center justify-content-center border bg-white shadow-sm"
       title={`${providerName} logo`}
+      style={{
+        width: `${boxSizes[size]}px`,
+        height: `${boxSizes[size]}px`,
+        borderRadius: sizeClasses[size],
+      }}
     >
       {logo ? (
-        <img alt="" draggable={false} src={logo.src} className={imageSizeClasses[size]} />
+        <img
+          alt=""
+          draggable={false}
+          src={logo.src}
+          style={{ width: `${imageSizes[size]}px`, height: `${imageSizes[size]}px` }}
+        />
       ) : (
-        <span className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#1f2731]">
+        <span className="small fw-semibold text-uppercase text-body-emphasis">
           {initialsFromName(providerName)}
         </span>
       )}

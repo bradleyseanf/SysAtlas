@@ -109,7 +109,7 @@ export function AccessPortal({ setupStatus, isLoading, error }: AccessPortalProp
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#0c1015] text-[#f5f7fa]">
+    <div className="access-portal relative min-h-screen overflow-hidden bg-[#0c1015] text-[#f5f7fa]">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(12,16,21,0.86),rgba(12,16,21,0.96))]" />
         <DotLottieReact
