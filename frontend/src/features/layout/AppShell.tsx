@@ -270,16 +270,7 @@ export function AppShell() {
           </CContainer>
 
           <CContainer fluid className="px-4 py-3">
-            <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
-              <div>
-                <h1 className="fs-4 fw-semibold mb-1">{currentTitle}</h1>
-                <div className="small text-body-secondary">{session.user.email}</div>
-              </div>
-              <div className="d-flex flex-wrap gap-2">
-                <CBadge color="secondary">{APP_VERSION}</CBadge>
-                {isDevMode ? <CBadge color="warning">Test Mode</CBadge> : null}
-              </div>
-            </div>
+            <h1 className="fs-4 fw-semibold mb-0">{currentTitle}</h1>
           </CContainer>
         </CHeader>
 

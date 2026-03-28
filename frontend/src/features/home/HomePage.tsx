@@ -303,7 +303,7 @@ export function HomePage() {
         <CCardBody className="d-flex flex-wrap align-items-center justify-content-between gap-3">
           <h2 className="h4 mb-0">Dashboard</h2>
           <div className="d-flex flex-wrap gap-2">
-            <CBadge color={isDevMode ? "warning" : "success"}>{isDevMode ? "Test data" : "Live data"}</CBadge>
+            {isDevMode ? <CBadge color="warning">Test data</CBadge> : null}
             {canViewUsers ? <CBadge color="secondary">{usersQuery.data?.stats.total_users ?? "--"} users</CBadge> : null}
             {canViewDevices ? <CBadge color="secondary">{devicesQuery.data?.stats.total_devices ?? "--"} devices</CBadge> : null}
             {canViewDevices ? <CBadge color="secondary">{complianceBreakdown.compliantShare}% compliant</CBadge> : null}
