@@ -22,7 +22,6 @@ from app.integrations.zoho.manifest import definition
 from app.models.integration_connection import IntegrationConnection
 from app.models.system_setting import SystemSetting
 from app.models.user import User
-from app.schemas.integrations import IntegrationOauthConfigResponse, IntegrationOauthConfigUpsertRequest
 from app.services.integration_secrets import decrypt_config, encrypt_config
 
 POPUP_STATE_VERSION = "sysatlas.zoho-popup.v1"
@@ -183,12 +182,6 @@ def _decrypt_secret_value(value: str) -> str:
     return decrypted
 
 
-def _mask_client_id(client_id: str) -> str:
-    if len(client_id) <= 8:
-        return client_id
-    return f"{client_id[:4]}...{client_id[-4:]}"
-
-
 def _database_oauth_credentials(db: Session) -> tuple[str, str] | None:
     client_id_setting = db.get(SystemSetting, ZOHO_CLIENT_ID_SETTING_KEY)
     client_secret_setting = db.get(SystemSetting, ZOHO_CLIENT_SECRET_SETTING_KEY)
@@ -212,74 +205,12 @@ def _resolve_zoho_oauth_credentials(db: Session) -> tuple[str, str, str]:
     if environment_client_id or environment_client_secret:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Both ZOHO_CLIENT_ID and ZOHO_CLIENT_SECRET must be set together.",
+            detail="Zoho One is not fully enabled on this SysAtlas deployment.",
         )
 
     raise HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        detail="Zoho One OAuth is not configured yet.",
-    )
-
-
-def get_oauth_config(*, db: Session, request: Request) -> IntegrationOauthConfigResponse:
-    redirect_uri = _resolve_redirect_uri(request)
-    try:
-        client_id, _, source = _resolve_zoho_oauth_credentials(db)
-    except HTTPException as error:
-        if error.status_code != status.HTTP_503_SERVICE_UNAVAILABLE:
-            raise
-        return IntegrationOauthConfigResponse(
-            provider=definition.slug,
-            configured=False,
-            source="missing",
-            redirect_uri=redirect_uri,
-            client_id_hint=None,
-        )
-
-    return IntegrationOauthConfigResponse(
-        provider=definition.slug,
-        configured=True,
-        source=source,  # type: ignore[arg-type]
-        redirect_uri=redirect_uri,
-        client_id_hint=_mask_client_id(client_id),
-    )
-
-
-def save_oauth_config(*, db: Session, payload: IntegrationOauthConfigUpsertRequest) -> IntegrationOauthConfigResponse:
-    encrypted_values = encrypt_config(
-        {
-            "client_id": payload.client_id,
-            "client_secret": payload.client_secret,
-        }
-    )
-
-    client_id_setting = db.get(SystemSetting, ZOHO_CLIENT_ID_SETTING_KEY)
-    if client_id_setting is None:
-        client_id_setting = SystemSetting(key=ZOHO_CLIENT_ID_SETTING_KEY, value=encrypted_values["client_id"], is_secret=True)
-        db.add(client_id_setting)
-    else:
-        client_id_setting.value = encrypted_values["client_id"]
-        client_id_setting.is_secret = True
-
-    client_secret_setting = db.get(SystemSetting, ZOHO_CLIENT_SECRET_SETTING_KEY)
-    if client_secret_setting is None:
-        client_secret_setting = SystemSetting(
-            key=ZOHO_CLIENT_SECRET_SETTING_KEY,
-            value=encrypted_values["client_secret"],
-            is_secret=True,
-        )
-        db.add(client_secret_setting)
-    else:
-        client_secret_setting.value = encrypted_values["client_secret"]
-        client_secret_setting.is_secret = True
-
-    db.commit()
-    return IntegrationOauthConfigResponse(
-        provider=definition.slug,
-        configured=True,
-        source="database",
-        redirect_uri="",
-        client_id_hint=_mask_client_id(payload.client_id),
+        detail="Zoho One is not enabled on this SysAtlas deployment.",
     )
 
 
