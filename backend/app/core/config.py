@@ -54,6 +54,11 @@ class Settings(BaseSettings):
     database_url: str = f"sqlite+pysqlite:///{DEFAULT_SQLITE_PATH}"
     app_secret_key: SecretStr | None = Field(default=None, validation_alias="APP_SECRET_KEY")
     integration_encryption_key: SecretStr | None = Field(default=None, validation_alias="INTEGRATION_ENCRYPTION_KEY")
+    zoho_client_id: str | None = Field(default=None, validation_alias="ZOHO_CLIENT_ID")
+    zoho_client_secret: SecretStr | None = Field(default=None, validation_alias="ZOHO_CLIENT_SECRET")
+    zoho_accounts_server: str = Field(default="https://accounts.zoho.com", validation_alias="ZOHO_ACCOUNTS_SERVER")
+    zoho_redirect_uri: str | None = Field(default=None, validation_alias="ZOHO_REDIRECT_URI")
+    zoho_oauth_scopes_raw: str = Field(default="AaaServer.profile.READ", validation_alias="ZOHO_OAUTH_SCOPES")
     cors_origins_raw: str = Field(
         default="http://localhost:3000,http://localhost:5173",
         validation_alias="CORS_ORIGINS",
@@ -80,6 +85,19 @@ class Settings(BaseSettings):
     def local_secret_file(self) -> Path:
         return self.state_dir / "runtime-secrets.json"
 
+    @computed_field
+    @property
+    def zoho_oauth_scopes(self) -> list[str]:
+        seen: set[str] = set()
+        scopes: list[str] = []
+        for scope in self.zoho_oauth_scopes_raw.split(","):
+            normalized = scope.strip()
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            scopes.append(normalized)
+        return scopes
+
     @field_validator("session_cookie_domain", mode="before")
     @classmethod
     def normalize_cookie_domain(cls, value: object) -> str | None:
@@ -88,6 +106,23 @@ class Settings(BaseSettings):
 
         normalized = str(value).strip()
         return normalized or None
+
+    @field_validator("zoho_client_id", "zoho_redirect_uri", mode="before")
+    @classmethod
+    def normalize_optional_string(cls, value: object) -> str | None:
+        if value is None:
+            return None
+
+        normalized = str(value).strip()
+        return normalized or None
+
+    @field_validator("zoho_accounts_server", mode="before")
+    @classmethod
+    def normalize_zoho_accounts_server(cls, value: object) -> str:
+        normalized = str(value).strip().rstrip("/")
+        if not normalized:
+            raise ValueError("ZOHO_ACCOUNTS_SERVER cannot be empty.")
+        return normalized
 
     @property
     def session_cookie_secure(self) -> bool:
@@ -107,6 +142,18 @@ class Settings(BaseSettings):
             raise RuntimeError("INTEGRATION_ENCRYPTION_KEY is not configured.")
 
         return self.integration_encryption_key.get_secret_value()
+
+    def require_zoho_client_id(self) -> str:
+        if self.zoho_client_id is None:
+            raise RuntimeError("ZOHO_CLIENT_ID is not configured.")
+
+        return self.zoho_client_id
+
+    def require_zoho_client_secret(self) -> str:
+        if self.zoho_client_secret is None:
+            raise RuntimeError("ZOHO_CLIENT_SECRET is not configured.")
+
+        return self.zoho_client_secret.get_secret_value()
 
     @model_validator(mode="after")
     def finalize_runtime_settings(self) -> "Settings":
