@@ -6,9 +6,13 @@ from app.api.dependencies import require_permission
 from app.db.session import get_db
 from app.integrations.zoho.oauth import begin_oauth_flow as begin_zoho_oauth_flow
 from app.integrations.zoho.oauth import complete_oauth_flow as complete_zoho_oauth_flow
+from app.integrations.zoho.oauth import get_oauth_config as get_zoho_oauth_config
+from app.integrations.zoho.oauth import save_oauth_config as save_zoho_oauth_config
 from app.models.user import User
 from app.schemas.integrations import (
     IntegrationCatalogResponse,
+    IntegrationOauthConfigResponse,
+    IntegrationOauthConfigUpsertRequest,
     IntegrationConnectionMutationResponse,
     IntegrationConnectionUpsertRequest,
     IntegrationListResponse,
@@ -40,13 +44,48 @@ def save_integration_connection(
     return upsert_connection(payload, db)
 
 
+@router.get("/{provider}/oauth/config", response_model=IntegrationOauthConfigResponse)
+def get_provider_oauth_config(
+    provider: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission("settings.integrations.manage")),
+) -> IntegrationOauthConfigResponse:
+    if provider != "zoho":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="OAuth config is not implemented for this integration yet.",
+        )
+
+    return get_zoho_oauth_config(db=db, request=request)
+
+
+@router.post("/{provider}/oauth/config", response_model=IntegrationOauthConfigResponse)
+def save_provider_oauth_config(
+    provider: str,
+    payload: IntegrationOauthConfigUpsertRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission("settings.integrations.manage")),
+) -> IntegrationOauthConfigResponse:
+    if provider != "zoho":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="OAuth config is not implemented for this integration yet.",
+        )
+
+    save_zoho_oauth_config(db=db, payload=payload)
+    return get_zoho_oauth_config(db=db, request=request)
+
+
 @router.get("/{provider}/oauth/start", name="start_provider_oauth")
 def start_provider_oauth(
     provider: str,
     request: Request,
     frontend_origin: str = Query(...),
+    db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("settings.integrations.manage")),
-) -> RedirectResponse:
+) -> HTMLResponse | RedirectResponse:
     if provider != "zoho":
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -54,6 +93,7 @@ def start_provider_oauth(
         )
 
     return begin_zoho_oauth_flow(
+        db=db,
         request=request,
         frontend_origin=frontend_origin,
         current_user=current_user,

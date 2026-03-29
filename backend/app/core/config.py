@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     zoho_client_secret: SecretStr | None = Field(default=None, validation_alias="ZOHO_CLIENT_SECRET")
     zoho_accounts_server: str = Field(default="https://accounts.zoho.com", validation_alias="ZOHO_ACCOUNTS_SERVER")
     zoho_redirect_uri: str | None = Field(default=None, validation_alias="ZOHO_REDIRECT_URI")
-    zoho_oauth_scopes_raw: str = Field(default="AaaServer.profile.READ", validation_alias="ZOHO_OAUTH_SCOPES")
+    zoho_oauth_scopes_raw: str = Field(default="ZohoOne.Users.READ", validation_alias="ZOHO_OAUTH_SCOPES")
     cors_origins_raw: str = Field(
         default="http://localhost:3000,http://localhost:5173",
         validation_alias="CORS_ORIGINS",

@@ -10,6 +10,8 @@ import type {
   IntegrationCatalogResponse,
   IntegrationListResponse,
   IntegrationMutationResponse,
+  IntegrationOauthConfig,
+  IntegrationOauthConfigPayload,
   IntegrationUpsertPayload,
   LibraryListResponse,
   SetupStatus,
@@ -74,6 +76,12 @@ export const api = {
   getIntegrations: () => apiRequest<IntegrationListResponse>("/integrations"),
   saveIntegration: (payload: IntegrationUpsertPayload) =>
     apiRequest<IntegrationMutationResponse>("/integrations", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  getIntegrationOauthConfig: (provider: string) => apiRequest<IntegrationOauthConfig>(`/integrations/${provider}/oauth/config`),
+  saveIntegrationOauthConfig: (provider: string, payload: IntegrationOauthConfigPayload) =>
+    apiRequest<IntegrationOauthConfig>(`/integrations/${provider}/oauth/config`, {
       method: "POST",
       body: JSON.stringify(payload),
     }),

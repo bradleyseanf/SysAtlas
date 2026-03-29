@@ -34,7 +34,7 @@ services:
       ZOHO_CLIENT_SECRET: ${ZOHO_CLIENT_SECRET:-}
       ZOHO_ACCOUNTS_SERVER: ${ZOHO_ACCOUNTS_SERVER:-https://accounts.zoho.com}
       ZOHO_REDIRECT_URI: ${ZOHO_REDIRECT_URI:-}
-      ZOHO_OAUTH_SCOPES: ${ZOHO_OAUTH_SCOPES:-AaaServer.profile.READ}
+      ZOHO_OAUTH_SCOPES: ${ZOHO_OAUTH_SCOPES:-ZohoOne.Users.READ}
     depends_on:
       db:
         condition: service_healthy

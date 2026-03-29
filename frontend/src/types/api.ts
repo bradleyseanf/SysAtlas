@@ -87,6 +87,19 @@ export type IntegrationMutationResponse = {
   item: IntegrationConnection;
 };
 
+export type IntegrationOauthConfig = {
+  provider: string;
+  configured: boolean;
+  source: "environment" | "database" | "missing";
+  redirect_uri: string;
+  client_id_hint: string | null;
+};
+
+export type IntegrationOauthConfigPayload = {
+  client_id: string;
+  client_secret: string;
+};
+
 export type LibraryNode = {
   id: string;
   name: string;

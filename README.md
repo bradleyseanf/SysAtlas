@@ -21,7 +21,7 @@
 - Microsoft Sharepoint
 - Microsoft Teams
 - Verizon Wireless
-- Zoho
+- Zoho One
 - Zoom
 - More to come - Please feel free to request new integrations, as well as add your own PRs for additional.
 

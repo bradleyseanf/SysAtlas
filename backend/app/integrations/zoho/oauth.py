@@ -20,13 +20,17 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.integrations.zoho.manifest import definition
 from app.models.integration_connection import IntegrationConnection
+from app.models.system_setting import SystemSetting
 from app.models.user import User
+from app.schemas.integrations import IntegrationOauthConfigResponse, IntegrationOauthConfigUpsertRequest
 from app.services.integration_secrets import decrypt_config, encrypt_config
 
 POPUP_STATE_VERSION = "sysatlas.zoho-popup.v1"
 POPUP_STATE_TTL = timedelta(minutes=10)
-DEFAULT_CONNECTION_NAME = "Zoho Workspace"
+DEFAULT_CONNECTION_NAME = "Zoho One Workspace"
 POPUP_MESSAGE_TYPE = "sysatlas.integration.oauth"
+ZOHO_CLIENT_ID_SETTING_KEY = "integrations.zoho.oauth.client_id"
+ZOHO_CLIENT_SECRET_SETTING_KEY = "integrations.zoho.oauth.client_secret"
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,7 +106,7 @@ def _decode_popup_state(state_token: str) -> PopupState:
     except ValueError as error:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid Zoho authorization state.",
+            detail="Invalid Zoho One authorization state.",
         ) from error
 
     expected_signature = hmac.new(
@@ -114,7 +118,7 @@ def _decode_popup_state(state_token: str) -> PopupState:
     if not hmac.compare_digest(expected_signature, provided_signature):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Zoho authorization state could not be verified.",
+            detail="Zoho One authorization state could not be verified.",
         )
 
     try:
@@ -122,13 +126,13 @@ def _decode_popup_state(state_token: str) -> PopupState:
     except (json.JSONDecodeError, UnicodeDecodeError) as error:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Zoho authorization state is malformed.",
+            detail="Zoho One authorization state is malformed.",
         ) from error
 
     if payload.get("ver") != POPUP_STATE_VERSION or payload.get("provider") != definition.slug:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Zoho authorization state is not valid for this integration.",
+            detail="Zoho One authorization state is not valid for this integration.",
         )
 
     expires_at = payload.get("exp")
@@ -137,13 +141,13 @@ def _decode_popup_state(state_token: str) -> PopupState:
     if not isinstance(expires_at, int) or expires_at < int(datetime.now(tz=UTC).timestamp()):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Zoho authorization state has expired. Start the connection again.",
+            detail="Zoho One authorization state has expired. Start the connection again.",
         )
 
     if not isinstance(frontend_origin, str) or not isinstance(user_id, str):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Zoho authorization state is incomplete.",
+            detail="Zoho One authorization state is incomplete.",
         )
 
     return PopupState(
@@ -164,19 +168,119 @@ def _zoho_scopes_value() -> str:
     if not scopes:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Zoho scopes are not configured.",
+            detail="Zoho One scopes are not configured.",
         )
     return ",".join(scopes)
 
 
-def _require_zoho_oauth_credentials() -> tuple[str, str]:
-    try:
-        return settings.require_zoho_client_id(), settings.require_zoho_client_secret()
-    except RuntimeError as error:
+def _decrypt_secret_value(value: str) -> str:
+    decrypted = decrypt_config({"value": value}).get("value")
+    if not decrypted:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Stored Zoho One credentials could not be read.",
+        )
+    return decrypted
+
+
+def _mask_client_id(client_id: str) -> str:
+    if len(client_id) <= 8:
+        return client_id
+    return f"{client_id[:4]}...{client_id[-4:]}"
+
+
+def _database_oauth_credentials(db: Session) -> tuple[str, str] | None:
+    client_id_setting = db.get(SystemSetting, ZOHO_CLIENT_ID_SETTING_KEY)
+    client_secret_setting = db.get(SystemSetting, ZOHO_CLIENT_SECRET_SETTING_KEY)
+    if client_id_setting is None or client_secret_setting is None:
+        return None
+
+    return _decrypt_secret_value(client_id_setting.value), _decrypt_secret_value(client_secret_setting.value)
+
+
+def _resolve_zoho_oauth_credentials(db: Session) -> tuple[str, str, str]:
+    environment_client_id = settings.zoho_client_id
+    environment_client_secret = settings.zoho_client_secret.get_secret_value() if settings.zoho_client_secret is not None else None
+    if environment_client_id and environment_client_secret:
+        return environment_client_id, environment_client_secret, "environment"
+
+    database_credentials = _database_oauth_credentials(db)
+    if database_credentials is not None:
+        client_id, client_secret = database_credentials
+        return client_id, client_secret, "database"
+
+    if environment_client_id or environment_client_secret:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Zoho OAuth is not configured on this deployment.",
-        ) from error
+            detail="Both ZOHO_CLIENT_ID and ZOHO_CLIENT_SECRET must be set together.",
+        )
+
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="Zoho One OAuth is not configured yet.",
+    )
+
+
+def get_oauth_config(*, db: Session, request: Request) -> IntegrationOauthConfigResponse:
+    redirect_uri = _resolve_redirect_uri(request)
+    try:
+        client_id, _, source = _resolve_zoho_oauth_credentials(db)
+    except HTTPException as error:
+        if error.status_code != status.HTTP_503_SERVICE_UNAVAILABLE:
+            raise
+        return IntegrationOauthConfigResponse(
+            provider=definition.slug,
+            configured=False,
+            source="missing",
+            redirect_uri=redirect_uri,
+            client_id_hint=None,
+        )
+
+    return IntegrationOauthConfigResponse(
+        provider=definition.slug,
+        configured=True,
+        source=source,  # type: ignore[arg-type]
+        redirect_uri=redirect_uri,
+        client_id_hint=_mask_client_id(client_id),
+    )
+
+
+def save_oauth_config(*, db: Session, payload: IntegrationOauthConfigUpsertRequest) -> IntegrationOauthConfigResponse:
+    encrypted_values = encrypt_config(
+        {
+            "client_id": payload.client_id,
+            "client_secret": payload.client_secret,
+        }
+    )
+
+    client_id_setting = db.get(SystemSetting, ZOHO_CLIENT_ID_SETTING_KEY)
+    if client_id_setting is None:
+        client_id_setting = SystemSetting(key=ZOHO_CLIENT_ID_SETTING_KEY, value=encrypted_values["client_id"], is_secret=True)
+        db.add(client_id_setting)
+    else:
+        client_id_setting.value = encrypted_values["client_id"]
+        client_id_setting.is_secret = True
+
+    client_secret_setting = db.get(SystemSetting, ZOHO_CLIENT_SECRET_SETTING_KEY)
+    if client_secret_setting is None:
+        client_secret_setting = SystemSetting(
+            key=ZOHO_CLIENT_SECRET_SETTING_KEY,
+            value=encrypted_values["client_secret"],
+            is_secret=True,
+        )
+        db.add(client_secret_setting)
+    else:
+        client_secret_setting.value = encrypted_values["client_secret"]
+        client_secret_setting.is_secret = True
+
+    db.commit()
+    return IntegrationOauthConfigResponse(
+        provider=definition.slug,
+        configured=True,
+        source="database",
+        redirect_uri="",
+        client_id_hint=_mask_client_id(payload.client_id),
+    )
 
 
 def _parse_json_response(response_body: str) -> dict[str, object]:
@@ -185,13 +289,13 @@ def _parse_json_response(response_body: str) -> dict[str, object]:
     except json.JSONDecodeError as error:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Zoho returned an unreadable response.",
+            detail="Zoho One returned an unreadable response.",
         ) from error
 
     if not isinstance(payload, dict):
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Zoho returned an unexpected response.",
+            detail="Zoho One returned an unexpected response.",
         )
 
     return payload
@@ -210,7 +314,7 @@ def _request_zoho_json(*, url: str, data: dict[str, str] | None = None, headers:
     except HTTPError as error:
         body = error.read().decode("utf-8", errors="replace")
         payload = _parse_json_response(body) if body else {}
-        detail = payload.get("error_description") or payload.get("error") or "Zoho rejected the request."
+        detail = payload.get("error_description") or payload.get("error") or "Zoho One rejected the request."
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=str(detail),
@@ -218,14 +322,14 @@ def _request_zoho_json(*, url: str, data: dict[str, str] | None = None, headers:
     except URLError as error:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Zoho could not be reached.",
+            detail="Zoho One could not be reached.",
         ) from error
 
     return _parse_json_response(body)
 
 
-def _exchange_authorization_code(*, code: str, redirect_uri: str, accounts_server: str) -> dict[str, object]:
-    client_id, client_secret = _require_zoho_oauth_credentials()
+def _exchange_authorization_code(*, db: Session, code: str, redirect_uri: str, accounts_server: str) -> dict[str, object]:
+    client_id, client_secret, _ = _resolve_zoho_oauth_credentials(db)
     return _request_zoho_json(
         url=f"{accounts_server.rstrip('/')}/oauth/v2/token",
         data={
@@ -238,16 +342,6 @@ def _exchange_authorization_code(*, code: str, redirect_uri: str, accounts_serve
     )
 
 
-def _fetch_user_profile(*, accounts_server: str, access_token: str) -> dict[str, object] | None:
-    try:
-        return _request_zoho_json(
-            url=f"{accounts_server.rstrip('/')}/oauth/user/info",
-            headers={"Authorization": f"Zoho-oauthtoken {access_token}"},
-        )
-    except HTTPException:
-        return None
-
-
 def _coerce_string(value: object) -> str | None:
     if not isinstance(value, str):
         return None
@@ -255,20 +349,9 @@ def _coerce_string(value: object) -> str | None:
     return normalized or None
 
 
-def _build_connection_label(*, existing: IntegrationConnection | None, profile: dict[str, object] | None) -> str:
+def _build_connection_label(*, existing: IntegrationConnection | None) -> str:
     if existing is not None and existing.tenant_label.strip():
         return existing.tenant_label
-
-    profile = profile or {}
-    for field_name in ("Email", "email", "PrimaryEmail", "primary_email", "display_email"):
-        email = _coerce_string(profile.get(field_name))
-        if email:
-            return email
-
-    for field_name in ("Display_Name", "display_name", "Full_Name", "full_name", "name"):
-        display_name = _coerce_string(profile.get(field_name))
-        if display_name:
-            return display_name
 
     return DEFAULT_CONNECTION_NAME
 
@@ -278,20 +361,19 @@ def _build_encrypted_config(
     token_response: dict[str, object],
     existing_config: dict[str, str],
     accounts_server: str,
-    profile: dict[str, object] | None,
 ) -> dict[str, str]:
     access_token = _coerce_string(token_response.get("access_token"))
     if access_token is None:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Zoho did not return an access token.",
+            detail="Zoho One did not return an access token.",
         )
 
     refresh_token = _coerce_string(token_response.get("refresh_token")) or existing_config.get("refresh_token")
     if refresh_token is None:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Zoho did not return a refresh token. Reconnect and approve offline access again.",
+            detail="Zoho One did not return a refresh token. Reconnect and approve offline access again.",
         )
 
     expires_in_raw = token_response.get("expires_in")
@@ -308,12 +390,6 @@ def _build_encrypted_config(
         "granted_scopes": _coerce_string(token_response.get("scope")) or ",".join(settings.zoho_oauth_scopes),
     }
 
-    email = None
-    if profile is not None:
-        email = _coerce_string(profile.get("Email")) or _coerce_string(profile.get("email"))
-    if email:
-        encrypted_payload["authorized_email"] = email
-
     return encrypt_config(encrypted_payload)
 
 
@@ -321,7 +397,6 @@ def _upsert_connection(
     *,
     db: Session,
     token_response: dict[str, object],
-    profile: dict[str, object] | None,
     accounts_server: str,
 ) -> None:
     existing = db.scalar(
@@ -338,7 +413,7 @@ def _upsert_connection(
         encrypted_config={},
     )
 
-    connection.tenant_label = _build_connection_label(existing=existing, profile=profile)
+    connection.tenant_label = _build_connection_label(existing=existing)
     connection.auth_strategy = definition.auth_strategy
     connection.status = "connected"
     connection.scopes = settings.zoho_oauth_scopes
@@ -346,7 +421,6 @@ def _upsert_connection(
         token_response=token_response,
         existing_config=existing_config,
         accounts_server=accounts_server,
-        profile=profile,
     )
 
     if existing is None:
@@ -372,7 +446,7 @@ def _popup_result(*, frontend_origin: str, success: bool, message: str) -> HTMLR
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Zoho Connection</title>
+    <title>Zoho One Connection</title>
     <style>
       :root {{
         color-scheme: light;
@@ -406,7 +480,7 @@ def _popup_result(*, frontend_origin: str, success: bool, message: str) -> HTMLR
   </head>
   <body>
     <main>
-      <h1>{'Zoho connected' if success else 'Zoho connection failed'}</h1>
+      <h1>{'Zoho One connected' if success else 'Zoho One connection failed'}</h1>
       <p>{safe_message}</p>
     </main>
     <script>
@@ -424,9 +498,16 @@ def _popup_result(*, frontend_origin: str, success: bool, message: str) -> HTMLR
     return response
 
 
-def begin_oauth_flow(*, request: Request, frontend_origin: str, current_user: User) -> RedirectResponse:
+def begin_oauth_flow(*, db: Session, request: Request, frontend_origin: str, current_user: User) -> HTMLResponse | RedirectResponse:
     normalized_frontend_origin = _normalize_frontend_origin(frontend_origin)
-    client_id, _ = _require_zoho_oauth_credentials()
+    try:
+        client_id, _, _ = _resolve_zoho_oauth_credentials(db)
+    except HTTPException as error:
+        return _popup_result(
+            frontend_origin=normalized_frontend_origin,
+            success=False,
+            message=error.detail,
+        )
     authorization_url = (
         f"{settings.zoho_accounts_server}/oauth/v2/auth?"
         f"{urlencode({'scope': _zoho_scopes_value(), 'client_id': client_id, 'response_type': 'code', 'access_type': 'offline', 'prompt': 'consent', 'redirect_uri': _resolve_redirect_uri(request), 'state': _create_popup_state(frontend_origin=normalized_frontend_origin, current_user=current_user)})}"
@@ -451,7 +532,7 @@ def complete_oauth_flow(
         return _popup_result(
             frontend_origin=popup_state.frontend_origin,
             success=False,
-            message="Zoho authorization could not be matched to a valid SysAtlas user.",
+            message="Zoho One authorization could not be matched to a valid SysAtlas user.",
         )
 
     popup_user = db.get(User, popup_user_id)
@@ -459,7 +540,7 @@ def complete_oauth_flow(
         return _popup_result(
             frontend_origin=popup_state.frontend_origin,
             success=False,
-            message="The SysAtlas session for this Zoho authorization is no longer valid.",
+            message="The SysAtlas session for this Zoho One authorization is no longer valid.",
         )
 
     if error:
@@ -467,34 +548,28 @@ def complete_oauth_flow(
         return _popup_result(
             frontend_origin=popup_state.frontend_origin,
             success=False,
-            message=f"Zoho authorization was not completed: {message}.",
+            message=f"Zoho One authorization was not completed: {message}.",
         )
 
     if not code:
         return _popup_result(
             frontend_origin=popup_state.frontend_origin,
             success=False,
-            message="Zoho did not return an authorization code.",
+            message="Zoho One did not return an authorization code.",
         )
 
     resolved_accounts_server = (accounts_server or settings.zoho_accounts_server).strip().rstrip("/")
 
     try:
         token_response = _exchange_authorization_code(
+            db=db,
             code=code,
             redirect_uri=_resolve_redirect_uri(request),
             accounts_server=resolved_accounts_server,
         )
-        access_token = _coerce_string(token_response.get("access_token"))
-        profile = (
-            _fetch_user_profile(accounts_server=resolved_accounts_server, access_token=access_token)
-            if access_token
-            else None
-        )
         _upsert_connection(
             db=db,
             token_response=token_response,
-            profile=profile,
             accounts_server=resolved_accounts_server,
         )
     except HTTPException as error_response:
@@ -507,5 +582,5 @@ def complete_oauth_flow(
     return _popup_result(
         frontend_origin=popup_state.frontend_origin,
         success=True,
-        message="Zoho credentials were saved securely in SysAtlas.",
+        message="Zoho One credentials were saved securely in SysAtlas.",
     )

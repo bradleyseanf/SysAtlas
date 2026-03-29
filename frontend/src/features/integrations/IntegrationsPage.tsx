@@ -1,6 +1,26 @@
 import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CAlert, CBadge, CButton, CCard, CCardBody, CCardHeader, CFormInput, CInputGroup, CInputGroupText, CSpinner, CTable } from "@coreui/react";
+import type { FormEvent } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  CAlert,
+  CBadge,
+  CButton,
+  CCard,
+  CCardBody,
+  CCardHeader,
+  CFormInput,
+  CFormLabel,
+  CFormText,
+  CInputGroup,
+  CInputGroupText,
+  CModal,
+  CModalBody,
+  CModalFooter,
+  CModalHeader,
+  CModalTitle,
+  CSpinner,
+  CTable,
+} from "@coreui/react";
 import CIcon from "@coreui/icons-react";
 import { cilSearch } from "@coreui/icons";
 import { useLocation, useSearchParams } from "react-router-dom";
@@ -57,6 +77,11 @@ type IntegrationOauthMessage = {
   message: string;
 };
 
+type ZohoOauthFormState = {
+  client_id: string;
+  client_secret: string;
+};
+
 export function IntegrationsPage() {
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -64,6 +89,14 @@ export function IntegrationsPage() {
   const [providerSearch, setProviderSearch] = useState("");
   const [notice, setNotice] = useState("");
   const [noticeColor, setNoticeColor] = useState<"info" | "success" | "warning" | "danger">("info");
+  const [zohoOauthModalVisible, setZohoOauthModalVisible] = useState(false);
+  const [zohoOauthRedirectUri, setZohoOauthRedirectUri] = useState("");
+  const [zohoOauthHint, setZohoOauthHint] = useState<string | null>(null);
+  const [zohoOauthError, setZohoOauthError] = useState("");
+  const [zohoOauthFormState, setZohoOauthFormState] = useState<ZohoOauthFormState>({
+    client_id: "",
+    client_secret: "",
+  });
 
   const moduleFilter = (searchParams.get("module") as ModuleFilter | null) ?? "all";
 
@@ -75,6 +108,21 @@ export function IntegrationsPage() {
   const connectionsQuery = useQuery({
     queryKey: ["integrations", "connections"],
     queryFn: api.getIntegrations,
+  });
+
+  const saveZohoOauthConfigMutation = useMutation({
+    mutationFn: (payload: ZohoOauthFormState) => api.saveIntegrationOauthConfig("zoho", payload),
+    onSuccess: (config) => {
+      setZohoOauthHint(config.client_id_hint);
+      setZohoOauthError("");
+      setZohoOauthModalVisible(false);
+      setNoticeColor("info");
+      setNotice("Zoho One app credentials saved. Continue the Zoho One sign-in flow in the popup.");
+      openProviderWindow("zoho", config.redirect_uri);
+    },
+    onError: (error) => {
+      setZohoOauthError(error instanceof Error ? error.message : "Unable to save the Zoho One app credentials.");
+    },
   });
 
   useEffect(() => {
@@ -167,16 +215,33 @@ export function IntegrationsPage() {
     setSearchParams(nextSearchParams, { replace: true });
   }
 
-  function launchUrl(provider: IntegrationProvider) {
-    if (provider.id === "zoho") {
-      return buildApiUrl(`/integrations/${provider.id}/oauth/start?frontend_origin=${encodeURIComponent(window.location.origin)}`);
+  function closeZohoOauthModal() {
+    if (saveZohoOauthConfigMutation.isPending) {
+      return;
     }
 
-    return provider.launch_url;
+    setZohoOauthModalVisible(false);
+    setZohoOauthError("");
+    setZohoOauthFormState({
+      client_id: "",
+      client_secret: "",
+    });
   }
 
-  function handleConnect(provider: IntegrationProvider) {
-    const popup = window.open(launchUrl(provider), `sysatlas-${provider.id}`, popupFeatures());
+  function openProviderWindow(providerId: string, redirectUri?: string) {
+    const provider =
+      (catalogQuery.data?.providers ?? []).find((catalogProvider) => catalogProvider.id === providerId) ?? null;
+    if (!provider) {
+      setNoticeColor("danger");
+      setNotice("The requested integration provider could not be found.");
+      return;
+    }
+
+    const popupUrl =
+      provider.id === "zoho"
+        ? buildApiUrl(`/integrations/${provider.id}/oauth/start?frontend_origin=${encodeURIComponent(window.location.origin)}`)
+        : provider.launch_url;
+    const popup = window.open(popupUrl, `sysatlas-${provider.id}`, popupFeatures());
     if (!popup) {
       setNoticeColor("warning");
       setNotice(`Allow pop-ups to open the ${provider.name} connection window.`);
@@ -186,12 +251,56 @@ export function IntegrationsPage() {
     popup.focus();
     if (provider.id === "zoho") {
       setNoticeColor("info");
-      setNotice("Complete the Zoho sign-in and consent flow in the popup. SysAtlas will save the encrypted credentials automatically.");
+      setNotice(
+        `Complete the Zoho One sign-in and consent flow in the popup. Redirect URI: ${redirectUri ?? zohoOauthRedirectUri}.`,
+      );
       return;
     }
 
     setNoticeColor("info");
     setNotice(`${provider.name} setup opened in a new window.`);
+  }
+
+  async function handleConnect(provider: IntegrationProvider) {
+    if (provider.id !== "zoho") {
+      openProviderWindow(provider.id);
+      return;
+    }
+
+    setZohoOauthError("");
+
+    try {
+      const oauthConfig = await api.getIntegrationOauthConfig(provider.id);
+      setZohoOauthRedirectUri(oauthConfig.redirect_uri);
+      setZohoOauthHint(oauthConfig.client_id_hint);
+
+      if (!oauthConfig.configured) {
+        setZohoOauthFormState({
+          client_id: "",
+          client_secret: "",
+        });
+        setZohoOauthModalVisible(true);
+        return;
+      }
+
+      openProviderWindow(provider.id, oauthConfig.redirect_uri);
+    } catch (error) {
+      setNoticeColor("danger");
+      setNotice(error instanceof Error ? error.message : "Unable to start the Zoho One connection.");
+    }
+  }
+
+  function handleZohoOauthFieldChange<Key extends keyof ZohoOauthFormState>(key: Key, value: ZohoOauthFormState[Key]) {
+    setZohoOauthFormState((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  }
+
+  function handleZohoOauthSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setZohoOauthError("");
+    saveZohoOauthConfigMutation.mutate(zohoOauthFormState);
   }
 
   return (
@@ -316,7 +425,7 @@ export function IntegrationsPage() {
                               size="sm"
                               color={providerIsConnected ? "secondary" : "primary"}
                               variant={providerIsConnected ? "outline" : undefined}
-                              onClick={() => handleConnect(provider)}
+                              onClick={() => void handleConnect(provider)}
                             >
                               Connect
                             </CButton>
@@ -331,6 +440,63 @@ export function IntegrationsPage() {
           )}
         </CCard>
       )}
+
+      <CModal alignment="center" visible={zohoOauthModalVisible} onClose={closeZohoOauthModal}>
+        <form onSubmit={handleZohoOauthSubmit}>
+          <CModalHeader>
+            <CModalTitle>Zoho One App Credentials</CModalTitle>
+          </CModalHeader>
+          <CModalBody className="d-grid gap-3">
+            {zohoOauthError ? (
+              <CAlert color="danger" className="mb-0">
+                {zohoOauthError}
+              </CAlert>
+            ) : null}
+
+            <div className="rounded border bg-body-tertiary p-3">
+              <div className="fw-semibold">Use a Zoho One ORG client</div>
+              <div className="small text-body-secondary">Create the client in Zoho’s API console and request the scope `ZohoOne.Users.READ`.</div>
+            </div>
+
+            <div>
+              <CFormLabel htmlFor="zoho-redirect-uri">Authorized Redirect URI</CFormLabel>
+              <CFormInput id="zoho-redirect-uri" value={zohoOauthRedirectUri} readOnly />
+              <CFormText>Register this exact callback URL on the Zoho One ORG client.</CFormText>
+            </div>
+
+            <div>
+              <CFormLabel htmlFor="zoho-client-id">Client ID</CFormLabel>
+              <CFormInput
+                id="zoho-client-id"
+                value={zohoOauthFormState.client_id}
+                onChange={(event) => handleZohoOauthFieldChange("client_id", event.target.value)}
+                placeholder={zohoOauthHint ?? "1000.xxxxxxxxxxxxxxxxxxxxx"}
+                required
+              />
+            </div>
+
+            <div>
+              <CFormLabel htmlFor="zoho-client-secret">Client Secret</CFormLabel>
+              <CFormInput
+                id="zoho-client-secret"
+                type="password"
+                value={zohoOauthFormState.client_secret}
+                onChange={(event) => handleZohoOauthFieldChange("client_secret", event.target.value)}
+                placeholder="Paste the Zoho One client secret"
+                required
+              />
+            </div>
+          </CModalBody>
+          <CModalFooter>
+            <CButton color="secondary" variant="outline" onClick={closeZohoOauthModal}>
+              Cancel
+            </CButton>
+            <CButton type="submit" color="primary" disabled={saveZohoOauthConfigMutation.isPending}>
+              {saveZohoOauthConfigMutation.isPending ? "Saving..." : "Save and Connect"}
+            </CButton>
+          </CModalFooter>
+        </form>
+      </CModal>
     </div>
   );
 }
