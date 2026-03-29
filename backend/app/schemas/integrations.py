@@ -92,3 +92,49 @@ class IntegrationConnectionUpsertRequest(BaseModel):
 class IntegrationConnectionMutationResponse(BaseModel):
     message: str
     item: IntegrationConnectionResponse
+
+
+class IntegrationOauthConfigResponse(BaseModel):
+    provider: str
+    configured: bool
+    source: Literal["environment", "database", "missing"]
+    redirect_uri: str
+    client_id_hint: str | None = None
+
+
+class IntegrationOauthConfigUpsertRequest(BaseModel):
+    client_id: str
+    client_secret: str
+    redirect_uri: str
+
+    @field_validator("client_id")
+    @classmethod
+    def validate_client_id(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Client ID is required.")
+        if len(normalized) > 255:
+            raise ValueError("Client ID must be 255 characters or fewer.")
+        return normalized
+
+    @field_validator("client_secret")
+    @classmethod
+    def validate_client_secret(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Client secret is required.")
+        if len(normalized) > 1024:
+            raise ValueError("Client secret must be 1024 characters or fewer.")
+        return normalized
+
+    @field_validator("redirect_uri")
+    @classmethod
+    def validate_redirect_uri(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Redirect URL is required.")
+        if not normalized.startswith(("http://", "https://")):
+            raise ValueError("Redirect URL must start with http:// or https://.")
+        if len(normalized) > 2048:
+            raise ValueError("Redirect URL must be 2048 characters or fewer.")
+        return normalized

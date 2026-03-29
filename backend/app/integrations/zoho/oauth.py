@@ -22,6 +22,7 @@ from app.integrations.zoho.manifest import definition
 from app.models.integration_connection import IntegrationConnection
 from app.models.system_setting import SystemSetting
 from app.models.user import User
+from app.schemas.integrations import IntegrationOauthConfigResponse, IntegrationOauthConfigUpsertRequest
 from app.services.integration_secrets import decrypt_config, encrypt_config
 
 POPUP_STATE_VERSION = "sysatlas.zoho-popup.v1"
@@ -30,6 +31,7 @@ DEFAULT_CONNECTION_NAME = "Zoho One Workspace"
 POPUP_MESSAGE_TYPE = "sysatlas.integration.oauth"
 ZOHO_CLIENT_ID_SETTING_KEY = "integrations.zoho.oauth.client_id"
 ZOHO_CLIENT_SECRET_SETTING_KEY = "integrations.zoho.oauth.client_secret"
+ZOHO_REDIRECT_URI_SETTING_KEY = "integrations.zoho.oauth.redirect_uri"
 
 
 @dataclass(frozen=True, slots=True)
@@ -156,9 +158,23 @@ def _decode_popup_state(state_token: str) -> PopupState:
     )
 
 
-def _resolve_redirect_uri(request: Request) -> str:
+def _stored_redirect_uri(db: Session) -> str | None:
+    redirect_uri_setting = db.get(SystemSetting, ZOHO_REDIRECT_URI_SETTING_KEY)
+    if redirect_uri_setting is None:
+        return None
+
+    normalized = redirect_uri_setting.value.strip()
+    return normalized or None
+
+
+def _resolve_redirect_uri(*, db: Session, request: Request) -> str:
     if settings.zoho_redirect_uri:
         return settings.zoho_redirect_uri
+
+    stored_redirect_uri = _stored_redirect_uri(db)
+    if stored_redirect_uri:
+        return stored_redirect_uri
+
     return str(request.url_for("complete_provider_oauth", provider=definition.slug))
 
 
@@ -180,6 +196,12 @@ def _decrypt_secret_value(value: str) -> str:
             detail="Stored Zoho One credentials could not be read.",
         )
     return decrypted
+
+
+def _mask_client_id(client_id: str) -> str:
+    if len(client_id) <= 8:
+        return client_id
+    return f"{client_id[:4]}...{client_id[-4:]}"
 
 
 def _database_oauth_credentials(db: Session) -> tuple[str, str] | None:
@@ -211,6 +233,84 @@ def _resolve_zoho_oauth_credentials(db: Session) -> tuple[str, str, str]:
     raise HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         detail="Zoho One is not enabled on this SysAtlas deployment.",
+    )
+
+
+def get_oauth_config(*, db: Session, request: Request) -> IntegrationOauthConfigResponse:
+    redirect_uri = _resolve_redirect_uri(db=db, request=request)
+    try:
+        client_id, _, source = _resolve_zoho_oauth_credentials(db)
+    except HTTPException as error:
+        if error.status_code != status.HTTP_503_SERVICE_UNAVAILABLE:
+            raise
+        return IntegrationOauthConfigResponse(
+            provider=definition.slug,
+            configured=False,
+            source="missing",
+            redirect_uri=redirect_uri,
+            client_id_hint=None,
+        )
+
+    return IntegrationOauthConfigResponse(
+        provider=definition.slug,
+        configured=True,
+        source=source,  # type: ignore[arg-type]
+        redirect_uri=redirect_uri,
+        client_id_hint=_mask_client_id(client_id),
+    )
+
+
+def save_oauth_config(*, db: Session, payload: IntegrationOauthConfigUpsertRequest) -> IntegrationOauthConfigResponse:
+    encrypted_values = encrypt_config(
+        {
+            "client_id": payload.client_id,
+            "client_secret": payload.client_secret,
+        }
+    )
+
+    client_id_setting = db.get(SystemSetting, ZOHO_CLIENT_ID_SETTING_KEY)
+    if client_id_setting is None:
+        client_id_setting = SystemSetting(
+            key=ZOHO_CLIENT_ID_SETTING_KEY,
+            value=encrypted_values["client_id"],
+            is_secret=True,
+        )
+        db.add(client_id_setting)
+    else:
+        client_id_setting.value = encrypted_values["client_id"]
+        client_id_setting.is_secret = True
+
+    client_secret_setting = db.get(SystemSetting, ZOHO_CLIENT_SECRET_SETTING_KEY)
+    if client_secret_setting is None:
+        client_secret_setting = SystemSetting(
+            key=ZOHO_CLIENT_SECRET_SETTING_KEY,
+            value=encrypted_values["client_secret"],
+            is_secret=True,
+        )
+        db.add(client_secret_setting)
+    else:
+        client_secret_setting.value = encrypted_values["client_secret"]
+        client_secret_setting.is_secret = True
+
+    redirect_uri_setting = db.get(SystemSetting, ZOHO_REDIRECT_URI_SETTING_KEY)
+    if redirect_uri_setting is None:
+        redirect_uri_setting = SystemSetting(
+            key=ZOHO_REDIRECT_URI_SETTING_KEY,
+            value=payload.redirect_uri,
+            is_secret=False,
+        )
+        db.add(redirect_uri_setting)
+    else:
+        redirect_uri_setting.value = payload.redirect_uri
+        redirect_uri_setting.is_secret = False
+
+    db.commit()
+    return IntegrationOauthConfigResponse(
+        provider=definition.slug,
+        configured=True,
+        source="database",
+        redirect_uri=payload.redirect_uri,
+        client_id_hint=_mask_client_id(payload.client_id),
     )
 
 
@@ -441,7 +541,7 @@ def begin_oauth_flow(*, db: Session, request: Request, frontend_origin: str, cur
         )
     authorization_url = (
         f"{settings.zoho_accounts_server}/oauth/v2/auth?"
-        f"{urlencode({'scope': _zoho_scopes_value(), 'client_id': client_id, 'response_type': 'code', 'access_type': 'offline', 'prompt': 'consent', 'redirect_uri': _resolve_redirect_uri(request), 'state': _create_popup_state(frontend_origin=normalized_frontend_origin, current_user=current_user)})}"
+        f"{urlencode({'scope': _zoho_scopes_value(), 'client_id': client_id, 'response_type': 'code', 'access_type': 'offline', 'prompt': 'consent', 'redirect_uri': _resolve_redirect_uri(db=db, request=request), 'state': _create_popup_state(frontend_origin=normalized_frontend_origin, current_user=current_user)})}"
     )
     return RedirectResponse(url=authorization_url, status_code=status.HTTP_302_FOUND)
 
@@ -495,7 +595,7 @@ def complete_oauth_flow(
         token_response = _exchange_authorization_code(
             db=db,
             code=code,
-            redirect_uri=_resolve_redirect_uri(request),
+            redirect_uri=_resolve_redirect_uri(db=db, request=request),
             accounts_server=resolved_accounts_server,
         )
         _upsert_connection(
