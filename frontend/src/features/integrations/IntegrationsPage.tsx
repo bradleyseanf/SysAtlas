@@ -83,6 +83,8 @@ type ZohoOauthFormState = {
   client_secret: string;
 };
 
+const ZOHO_API_CONSOLE_URL = "https://api-console.zoho.com/";
+
 export function IntegrationsPage() {
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -91,6 +93,7 @@ export function IntegrationsPage() {
   const [notice, setNotice] = useState("");
   const [noticeColor, setNoticeColor] = useState<"info" | "success" | "warning" | "danger">("info");
   const [zohoOauthModalVisible, setZohoOauthModalVisible] = useState(false);
+  const [zohoOauthStep, setZohoOauthStep] = useState<1 | 2>(1);
   const [zohoOauthHint, setZohoOauthHint] = useState<string | null>(null);
   const [zohoOauthError, setZohoOauthError] = useState("");
   const [zohoOauthFormState, setZohoOauthFormState] = useState<ZohoOauthFormState>({
@@ -116,6 +119,7 @@ export function IntegrationsPage() {
     onSuccess: (config) => {
       setZohoOauthHint(config.client_id_hint);
       setZohoOauthError("");
+      setZohoOauthStep(1);
       setZohoOauthModalVisible(false);
       setNoticeColor("info");
       setNotice("Zoho One app credentials saved. Continue the Zoho One sign-in flow in the popup.");
@@ -222,6 +226,7 @@ export function IntegrationsPage() {
     }
 
     setZohoOauthModalVisible(false);
+    setZohoOauthStep(1);
     setZohoOauthError("");
     setZohoOauthFormState({
       redirect_uri: "",
@@ -276,6 +281,7 @@ export function IntegrationsPage() {
       setZohoOauthHint(oauthConfig.client_id_hint);
 
       if (!oauthConfig.configured) {
+        setZohoOauthStep(1);
         setZohoOauthFormState({
           redirect_uri: oauthConfig.redirect_uri,
           client_id: "",
@@ -443,10 +449,10 @@ export function IntegrationsPage() {
         </CCard>
       )}
 
-      <CModal alignment="center" visible={zohoOauthModalVisible} onClose={closeZohoOauthModal}>
+      <CModal alignment="center" size="lg" visible={zohoOauthModalVisible} onClose={closeZohoOauthModal}>
         <form onSubmit={handleZohoOauthSubmit}>
           <CModalHeader>
-            <CModalTitle>Zoho One App Credentials</CModalTitle>
+            <CModalTitle>Zoho One OAuth Setup</CModalTitle>
           </CModalHeader>
           <CModalBody className="d-grid gap-3">
             {zohoOauthError ? (
@@ -455,54 +461,119 @@ export function IntegrationsPage() {
               </CAlert>
             ) : null}
 
-            <div className="rounded border bg-body-tertiary p-3">
-              <div className="fw-semibold">Manual Zoho One OAuth Setup</div>
-              <div className="small text-body-secondary">Enter the redirect URL, client ID, and client secret you want SysAtlas to use for this Zoho One connection.</div>
+            <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 rounded border bg-body-tertiary p-3">
+              <div>
+                <div className="fw-semibold">Step {zohoOauthStep} of 2</div>
+                <div className="small text-body-secondary">
+                  {zohoOauthStep === 1
+                    ? "Create the Zoho app first, then continue to the credential form."
+                    : "Paste the new client credentials and start the Zoho One consent flow."}
+                </div>
+              </div>
+              <CBadge color="primary">{zohoOauthStep === 1 ? "Create App" : "Save Credentials"}</CBadge>
             </div>
 
-            <div>
-              <CFormLabel htmlFor="zoho-redirect-uri">Redirect URL</CFormLabel>
-              <CFormInput
-                id="zoho-redirect-uri"
-                type="url"
-                value={zohoOauthFormState.redirect_uri}
-                onChange={(event) => handleZohoOauthFieldChange("redirect_uri", event.target.value)}
-                placeholder="http://localhost:8000/api/v1/integrations/zoho/oauth/callback"
-                required
-              />
-              <CFormText>Use the exact redirect URL that Zoho expects for this OAuth client.</CFormText>
-            </div>
+            {zohoOauthStep === 1 ? (
+              <>
+                <CAlert color="info" className="mb-0">
+                  Go to <strong>api-console.zoho.com</strong>, click <strong>Server-based Applications</strong>, and use
+                  the redirect URL below when Zoho asks for it.
+                </CAlert>
 
-            <div>
-              <CFormLabel htmlFor="zoho-client-id">Client ID</CFormLabel>
-              <CFormInput
-                id="zoho-client-id"
-                value={zohoOauthFormState.client_id}
-                onChange={(event) => handleZohoOauthFieldChange("client_id", event.target.value)}
-                placeholder={zohoOauthHint ?? "1000.xxxxxxxxxxxxxxxxxxxxx"}
-                required
-              />
-            </div>
+                <div className="d-grid gap-3 rounded border p-3">
+                  <div>
+                    <div className="fw-semibold">Which Zoho option to click</div>
+                    <div className="small text-body-secondary">
+                      Choose <strong>Server-based Applications</strong>. Do not use Client-based, Mobile-based,
+                      Non-browser, or Self Client for this SysAtlas connection.
+                    </div>
+                  </div>
 
-            <div>
-              <CFormLabel htmlFor="zoho-client-secret">Client Secret</CFormLabel>
-              <CFormInput
-                id="zoho-client-secret"
-                type="password"
-                value={zohoOauthFormState.client_secret}
-                onChange={(event) => handleZohoOauthFieldChange("client_secret", event.target.value)}
-                placeholder="Paste the Zoho One client secret"
-                required
-              />
-            </div>
+                  <div>
+                    <CFormLabel htmlFor="zoho-redirect-uri">Redirect URL</CFormLabel>
+                    <CFormInput
+                      id="zoho-redirect-uri"
+                      type="url"
+                      value={zohoOauthFormState.redirect_uri}
+                      onChange={(event) => handleZohoOauthFieldChange("redirect_uri", event.target.value)}
+                      placeholder="http://localhost:8000/api/v1/integrations/zoho/oauth/callback"
+                      required
+                    />
+                    <CFormText>Enter this exact URL in Zoho when it asks for the authorized redirect URI.</CFormText>
+                  </div>
+
+                  <div className="d-flex flex-wrap gap-2">
+                    <CButton
+                      type="button"
+                      color="secondary"
+                      variant="outline"
+                      onClick={() => window.open(ZOHO_API_CONSOLE_URL, "_blank", "noopener,noreferrer")}
+                    >
+                      Open api-console.zoho.com
+                    </CButton>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <CAlert color="info" className="mb-0">
+                  After Zoho creates the <strong>Server-based Application</strong>, paste the generated client ID and
+                  client secret below, then click <strong>Save and Connect</strong>.
+                </CAlert>
+
+                <div className="rounded border bg-body-tertiary p-3">
+                  <div className="fw-semibold">Redirect URL in use</div>
+                  <div className="small text-body-secondary">{zohoOauthFormState.redirect_uri}</div>
+                </div>
+
+                <div>
+                  <CFormLabel htmlFor="zoho-client-id">Client ID</CFormLabel>
+                  <CFormInput
+                    id="zoho-client-id"
+                    value={zohoOauthFormState.client_id}
+                    onChange={(event) => handleZohoOauthFieldChange("client_id", event.target.value)}
+                    placeholder={zohoOauthHint ?? "1000.xxxxxxxxxxxxxxxxxxxxx"}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <CFormLabel htmlFor="zoho-client-secret">Client Secret</CFormLabel>
+                  <CFormInput
+                    id="zoho-client-secret"
+                    type="password"
+                    value={zohoOauthFormState.client_secret}
+                    onChange={(event) => handleZohoOauthFieldChange("client_secret", event.target.value)}
+                    placeholder="Paste the Zoho One client secret"
+                    required
+                  />
+                </div>
+              </>
+            )}
           </CModalBody>
           <CModalFooter>
             <CButton color="secondary" variant="outline" onClick={closeZohoOauthModal}>
               Cancel
             </CButton>
-            <CButton type="submit" color="primary" disabled={saveZohoOauthConfigMutation.isPending}>
-              {saveZohoOauthConfigMutation.isPending ? "Saving..." : "Save and Connect"}
-            </CButton>
+            {zohoOauthStep === 1 ? (
+              <CButton
+                type="button"
+                color="primary"
+                disabled={!zohoOauthFormState.redirect_uri.trim()}
+                onClick={() => setZohoOauthStep(2)}
+              >
+                Next
+              </CButton>
+            ) : (
+              <>
+                <CButton type="button" color="secondary" variant="outline" onClick={() => setZohoOauthStep(1)}>
+                  Back
+                </CButton>
+                <CButton type="submit" color="primary" disabled={saveZohoOauthConfigMutation.isPending}>
+                  {saveZohoOauthConfigMutation.isPending ? "Saving..." : "Save and Connect"}
+                </CButton>
+              </>
+            )}
           </CModalFooter>
         </form>
       </CModal>
