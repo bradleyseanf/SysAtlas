@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CAlert, CBadge, CButton, CCard, CCardBody, CCardHeader, CFormInput, CInputGroup, CInputGroupText, CSpinner, CTable } from "@coreui/react";
 import CIcon from "@coreui/icons-react";
 import { cilSearch } from "@coreui/icons";
 import { useLocation, useSearchParams } from "react-router-dom";
 
 import { StatusBadge } from "../../components/StatusBadge";
-import { api } from "../../lib/api";
+import { API_BASE_URL, api, buildApiUrl } from "../../lib/api";
 import { formatDateTime, humanizeKey } from "../../lib/formatters";
 import type { IntegrationConnection, IntegrationProvider } from "../../types/api";
 import { IntegrationLogo } from "./integrationLogos";
@@ -42,10 +42,6 @@ function sessionExpiresLabel(_connection?: IntegrationConnection) {
   return "Not available";
 }
 
-function defaultConnectionLabel(providerName: string) {
-  return `${providerName} Workspace`;
-}
-
 function popupFeatures() {
   const width = 720;
   const height = 760;
@@ -54,6 +50,13 @@ function popupFeatures() {
   return `popup=yes,width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`;
 }
 
+type IntegrationOauthMessage = {
+  type: string;
+  provider: string;
+  success: boolean;
+  message: string;
+};
+
 export function IntegrationsPage() {
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -61,8 +64,6 @@ export function IntegrationsPage() {
   const [providerSearch, setProviderSearch] = useState("");
   const [notice, setNotice] = useState("");
   const [noticeColor, setNoticeColor] = useState<"info" | "success" | "warning" | "danger">("info");
-  const [launchReadyProviders, setLaunchReadyProviders] = useState<Record<string, boolean>>({});
-  const launchWatchersRef = useRef<Record<string, number>>({});
 
   const moduleFilter = (searchParams.get("module") as ModuleFilter | null) ?? "all";
 
@@ -76,26 +77,35 @@ export function IntegrationsPage() {
     queryFn: api.getIntegrations,
   });
 
-  const saveMutation = useMutation({
-    mutationFn: api.saveIntegration,
-    onSuccess: async (response) => {
-      setNoticeColor("success");
-      setNotice(response.message);
-      await queryClient.invalidateQueries({ queryKey: ["integrations"] });
-      await queryClient.invalidateQueries({ queryKey: ["users"] });
-      await queryClient.invalidateQueries({ queryKey: ["devices"] });
-    },
-    onError: (mutationError) => {
-      setNoticeColor("danger");
-      setNotice(mutationError instanceof Error ? mutationError.message : "Unable to save the integration.");
-    },
-  });
-
   useEffect(() => {
-    return () => {
-      Object.values(launchWatchersRef.current).forEach((watcher) => window.clearInterval(watcher));
-    };
-  }, []);
+    const apiOrigin = new URL(API_BASE_URL).origin;
+
+    function handleOauthMessage(event: MessageEvent<IntegrationOauthMessage>) {
+      if (event.origin !== apiOrigin || typeof event.data !== "object" || event.data === null) {
+        return;
+      }
+
+      if (event.data.type !== "sysatlas.integration.oauth") {
+        return;
+      }
+
+      setNoticeColor(event.data.success ? "success" : "danger");
+      setNotice(event.data.message);
+
+      if (!event.data.success) {
+        return;
+      }
+
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["integrations"] }),
+        queryClient.invalidateQueries({ queryKey: ["users"] }),
+        queryClient.invalidateQueries({ queryKey: ["devices"] }),
+      ]);
+    }
+
+    window.addEventListener("message", handleOauthMessage);
+    return () => window.removeEventListener("message", handleOauthMessage);
+  }, [queryClient]);
 
   const allConnections = connectionsQuery.data?.items ?? [];
   const connectedConnections = allConnections.filter((item) => item.status === "configured" || item.status === "connected");
@@ -157,21 +167,16 @@ export function IntegrationsPage() {
     setSearchParams(nextSearchParams, { replace: true });
   }
 
-  function saveProviderConnection(provider: IntegrationProvider, connection?: IntegrationConnection) {
-    saveMutation.mutate({
-      provider: provider.id,
-      tenant_label: connection?.tenant_label ?? defaultConnectionLabel(provider.name),
-      config: {},
-      status: "configured",
-    });
+  function launchUrl(provider: IntegrationProvider) {
+    if (provider.id === "zoho") {
+      return buildApiUrl(`/integrations/${provider.id}/oauth/start?frontend_origin=${encodeURIComponent(window.location.origin)}`);
+    }
+
+    return provider.launch_url;
   }
 
-  function canCompleteConnection(providerId: string, connection?: IntegrationConnection) {
-    return !isConnected(connection) && (launchReadyProviders[providerId] || connection?.status === "authorization_pending");
-  }
-
-  function handleLaunch(provider: IntegrationProvider) {
-    const popup = window.open(provider.launch_url, `sysatlas-${provider.id}`, popupFeatures());
+  function handleConnect(provider: IntegrationProvider) {
+    const popup = window.open(launchUrl(provider), `sysatlas-${provider.id}`, popupFeatures());
     if (!popup) {
       setNoticeColor("warning");
       setNotice(`Allow pop-ups to open the ${provider.name} connection window.`);
@@ -179,30 +184,14 @@ export function IntegrationsPage() {
     }
 
     popup.focus();
-    setNoticeColor("info");
-    setNotice(`${provider.name} opened in a secure provider session. Finish sign-in there, then return here to connect it.`);
-    setLaunchReadyProviders((current) => ({ ...current, [provider.id]: false }));
-
-    const existingWatcher = launchWatchersRef.current[provider.id];
-    if (existingWatcher) {
-      window.clearInterval(existingWatcher);
+    if (provider.id === "zoho") {
+      setNoticeColor("info");
+      setNotice("Complete the Zoho sign-in and consent flow in the popup. SysAtlas will save the encrypted credentials automatically.");
+      return;
     }
 
-    launchWatchersRef.current[provider.id] = window.setInterval(() => {
-      if (!popup.closed) {
-        return;
-      }
-
-      const watcher = launchWatchersRef.current[provider.id];
-      if (watcher) {
-        window.clearInterval(watcher);
-        delete launchWatchersRef.current[provider.id];
-      }
-
-      setLaunchReadyProviders((current) => ({ ...current, [provider.id]: true }));
-      setNoticeColor("info");
-      setNotice(`${provider.name} session closed. If access was granted, connect it here.`);
-    }, 500);
+    setNoticeColor("info");
+    setNotice(`${provider.name} setup opened in a new window.`);
   }
 
   return (
@@ -296,8 +285,6 @@ export function IntegrationsPage() {
                   <tbody>
                     {providerRows.map(({ provider, connection }) => {
                       const providerIsConnected = isConnected(connection);
-                      const providerCanComplete = canCompleteConnection(provider.id, connection);
-                      const actionLabel = providerCanComplete ? "Complete" : provider.launch_button_label;
 
                       return (
                         <tr key={provider.id}>
@@ -327,18 +314,11 @@ export function IntegrationsPage() {
                           <td className="text-end">
                             <CButton
                               size="sm"
-                              color={providerCanComplete ? "primary" : providerIsConnected ? "secondary" : "secondary"}
-                              variant={providerCanComplete ? undefined : "outline"}
-                              onClick={() => {
-                                if (providerCanComplete) {
-                                  saveProviderConnection(provider, connection);
-                                  return;
-                                }
-
-                                handleLaunch(provider);
-                              }}
+                              color={providerIsConnected ? "secondary" : "primary"}
+                              variant={providerIsConnected ? "outline" : undefined}
+                              onClick={() => handleConnect(provider)}
                             >
-                              {actionLabel}
+                              Connect
                             </CButton>
                           </td>
                         </tr>
