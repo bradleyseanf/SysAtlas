@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, Response
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import require_permission
@@ -78,14 +78,14 @@ def save_provider_oauth_config(
     return get_zoho_oauth_config(db=db, request=request)
 
 
-@router.get("/{provider}/oauth/start", name="start_provider_oauth")
+@router.get("/{provider}/oauth/start", name="start_provider_oauth", response_model=None)
 def start_provider_oauth(
     provider: str,
     request: Request,
     frontend_origin: str = Query(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("settings.integrations.manage")),
-) -> HTMLResponse | RedirectResponse:
+) -> Response:
     if provider != "zoho":
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
