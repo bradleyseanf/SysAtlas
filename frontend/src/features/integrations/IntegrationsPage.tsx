@@ -130,6 +130,22 @@ export function IntegrationsPage() {
     },
   });
 
+  const importIntuneDevicesMutation = useMutation({
+    mutationFn: () => api.importIntegrationDevices("intune"),
+    onSuccess: (result) => {
+      setNoticeColor("success");
+      setNotice(result.message);
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["integrations"] }),
+        queryClient.invalidateQueries({ queryKey: ["devices"] }),
+      ]);
+    },
+    onError: (error) => {
+      setNoticeColor("danger");
+      setNotice(error instanceof Error ? error.message : "Unable to import Intune devices.");
+    },
+  });
+
   useEffect(() => {
     const apiOrigin = new URL(API_BASE_URL).origin;
 
@@ -244,10 +260,10 @@ export function IntegrationsPage() {
       return;
     }
 
-    const popupUrl =
-      provider.id === "zoho"
-        ? buildApiUrl(`/integrations/${provider.id}/oauth/start?frontend_origin=${encodeURIComponent(window.location.origin)}`)
-        : provider.launch_url;
+    const usesOAuthPopup = provider.id === "zoho" || provider.id === "intune";
+    const popupUrl = usesOAuthPopup
+      ? buildApiUrl(`/integrations/${provider.id}/oauth/start?frontend_origin=${encodeURIComponent(window.location.origin)}`)
+      : provider.launch_url;
     const popup = window.open(popupUrl, `sysatlas-${provider.id}`, popupFeatures());
     if (!popup) {
       setNoticeColor("warning");
@@ -261,6 +277,12 @@ export function IntegrationsPage() {
       setNotice(
         `Complete the Zoho One sign-in and consent flow in the popup. Redirect URL: ${redirectUri ?? zohoOauthFormState.redirect_uri}.`,
       );
+      return;
+    }
+
+    if (provider.id === "intune") {
+      setNoticeColor("info");
+      setNotice("Complete the Microsoft sign-in and Intune consent flow in the popup. SysAtlas will import devices after approval.");
       return;
     }
 
@@ -309,6 +331,13 @@ export function IntegrationsPage() {
     event.preventDefault();
     setZohoOauthError("");
     saveZohoOauthConfigMutation.mutate(zohoOauthFormState);
+  }
+
+  function handleImportDevices(providerId: string) {
+    if (providerId !== "intune") {
+      return;
+    }
+    importIntuneDevicesMutation.mutate();
   }
 
   return (
@@ -437,6 +466,17 @@ export function IntegrationsPage() {
                             >
                               Connect
                             </CButton>
+                            {provider.id === "intune" && providerIsConnected ? (
+                              <CButton
+                                size="sm"
+                                color="primary"
+                                className="ms-2"
+                                disabled={importIntuneDevicesMutation.isPending}
+                                onClick={() => handleImportDevices(provider.id)}
+                              >
+                                {importIntuneDevicesMutation.isPending ? "Importing..." : "Import Devices"}
+                              </CButton>
+                            ) : null}
                           </td>
                         </tr>
                       );

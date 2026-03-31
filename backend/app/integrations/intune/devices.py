@@ -2,7 +2,6 @@ import asyncio
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-import httpx
 from azure.core.credentials import AccessToken, TokenCredential
 from fastapi import HTTPException, status
 from kiota_abstractions.method import Method
@@ -75,17 +74,13 @@ async def _fetch_json_page(url: str, credential: StaticAccessTokenCredential) ->
         credentials=credential,
         scopes=["https://graph.microsoft.com/.default"],
     )
-    async with httpx.AsyncClient(timeout=30.0) as http_client:
-        adapter = BaseGraphRequestAdapter(
-            authentication_provider=auth_provider,
-            http_client=http_client,
-        )
-        request_info = RequestInformation(method=Method.GET)
-        request_info.url = url
-        request_info.headers.try_add("Accept", "application/json")
+    adapter = BaseGraphRequestAdapter(authentication_provider=auth_provider)
+    request_info = RequestInformation(method=Method.GET)
+    request_info.url = url
+    request_info.headers.try_add("Accept", "application/json")
 
-        with trace.get_tracer(__name__).start_as_current_span("intune.fetch_devices") as span:
-            response = await adapter.get_http_response_message(request_info, span)
+    with trace.get_tracer(__name__).start_as_current_span("intune.fetch_devices") as span:
+        response = await adapter.get_http_response_message(request_info, span)
 
     response.raise_for_status()
     payload = response.json()
@@ -109,18 +104,20 @@ async def _fetch_managed_devices(access_token: str, expires_at: datetime) -> lis
             if isinstance(page_items, list):
                 devices.extend(item for item in page_items if isinstance(item, dict))
             next_url = _coerce_string(payload.get("@odata.nextLink")) or ""
-    except httpx.HTTPStatusError as error:
-        detail = "Microsoft Graph rejected the Intune managed devices request."
-        try:
-            payload = error.response.json()
-        except ValueError:
-            payload = None
-        if isinstance(payload, dict):
-            error_node = payload.get("error")
-            if isinstance(error_node, dict):
-                detail = _coerce_string(error_node.get("message")) or detail
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail) from error
-    except httpx.HTTPError as error:
+    except Exception as error:
+        response = getattr(error, "response", None)
+        if response is not None:
+            detail = "Microsoft Graph rejected the Intune managed devices request."
+            try:
+                payload = response.json()
+            except ValueError:
+                payload = None
+            if isinstance(payload, dict):
+                error_node = payload.get("error")
+                if isinstance(error_node, dict):
+                    detail = _coerce_string(error_node.get("message")) or detail
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail) from error
+
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Microsoft Graph could not be reached for Intune device import.",

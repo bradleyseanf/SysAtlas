@@ -8,6 +8,7 @@ import type {
   AuthSessionResponse,
   DeviceListResponse,
   IntegrationCatalogResponse,
+  IntegrationImportResponse,
   IntegrationListResponse,
   IntegrationMutationResponse,
   IntegrationOauthConfig,
@@ -84,6 +85,10 @@ export const api = {
     apiRequest<IntegrationOauthConfig>(`/integrations/${provider}/oauth/config`, {
       method: "POST",
       body: JSON.stringify(payload),
+    }),
+  importIntegrationDevices: (provider: string) =>
+    apiRequest<IntegrationImportResponse>(`/integrations/${provider}/import/devices`, {
+      method: "POST",
     }),
   getAccessControl: () => apiRequest<AccessControlResponse>("/settings/access-control"),
   saveAccessProfile: (payload: AccessProfileUpsertPayload) =>

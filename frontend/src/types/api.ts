@@ -101,6 +101,13 @@ export type IntegrationOauthConfigPayload = {
   redirect_uri: string;
 };
 
+export type IntegrationImportResponse = {
+  message: string;
+  imported_count: number;
+  updated_count: number;
+  total_count: number;
+};
+
 export type LibraryNode = {
   id: string;
   name: string;
