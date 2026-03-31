@@ -27,6 +27,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { formatDateTime } from "../../lib/formatters";
 import { useDevModeUrlState } from "../../lib/devMode";
 import { api } from "../../lib/api";
+import { isHostedStaticDemoMode } from "../../lib/runtimeMode";
 import { useAuth } from "../auth/AuthContext";
 import {
   accessControlQueryKey,
@@ -36,6 +37,7 @@ import {
 } from "./accessControlShared";
 
 export function AccessUserDetailPage() {
+  const isStaticDemo = isHostedStaticDemoMode();
   const { userId = "" } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -162,7 +164,7 @@ export function AccessUserDetailPage() {
         <CButton color="secondary" variant="outline" onClick={() => navigate(withDevMode("/settings/users"))}>
           Back to Users
         </CButton>
-        <CButton color="primary" onClick={() => setIsEditorVisible(true)}>
+        <CButton color="primary" disabled={isStaticDemo} onClick={() => setIsEditorVisible(true)}>
           {selectedUser ? "Edit User" : "Create User"}
         </CButton>
       </div>
@@ -170,6 +172,10 @@ export function AccessUserDetailPage() {
       {notice ? (
         <CAlert color={noticeTone} className="mb-0">
           {notice}
+        </CAlert>
+      ) : isStaticDemo ? (
+        <CAlert color="info" className="mb-0">
+          Hosted Vercel access is read-only. Access user edits are disabled in static demo mode.
         </CAlert>
       ) : null}
 
@@ -234,7 +240,7 @@ export function AccessUserDetailPage() {
         </CCardBody>
       </CCard>
 
-      <CModal alignment="center" visible={isEditorVisible} onClose={handleCloseEditor}>
+      <CModal alignment="center" visible={isEditorVisible && !isStaticDemo} onClose={handleCloseEditor}>
         <form onSubmit={handleSubmit}>
           <CModalHeader>
             <CModalTitle>{formState.id ? "Edit User" : "Create User"}</CModalTitle>

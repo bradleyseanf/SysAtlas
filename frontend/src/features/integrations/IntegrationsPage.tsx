@@ -28,6 +28,7 @@ import { useLocation, useSearchParams } from "react-router-dom";
 import { StatusBadge } from "../../components/StatusBadge";
 import { API_BASE_URL, api, buildApiUrl } from "../../lib/api";
 import { formatDateTime, humanizeKey } from "../../lib/formatters";
+import { isHostedStaticDemoMode } from "../../lib/runtimeMode";
 import type { IntegrationConnection, IntegrationProvider } from "../../types/api";
 import { IntegrationLogo } from "./integrationLogos";
 
@@ -86,6 +87,7 @@ type ZohoOauthFormState = {
 const ZOHO_API_CONSOLE_URL = "https://api-console.zoho.com/";
 
 export function IntegrationsPage() {
+  const isStaticDemo = isHostedStaticDemoMode();
   const queryClient = useQueryClient();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -343,8 +345,9 @@ export function IntegrationsPage() {
   return (
     <div className="d-grid gap-4">
       <CAlert color="info" className="mb-0">
-        Integrations open in provider-hosted browser sessions. They only show as connected after the live provider link is saved
-        here.
+        {isStaticDemo
+          ? "Hosted Vercel access is locked to static demo data. Provider connections and imports are disabled here."
+          : "Integrations open in provider-hosted browser sessions. They only show as connected after the live provider link is saved here."}
       </CAlert>
 
       <div className="d-flex flex-wrap gap-2">
@@ -462,19 +465,20 @@ export function IntegrationsPage() {
                               size="sm"
                               color={providerIsConnected ? "secondary" : "primary"}
                               variant={providerIsConnected ? "outline" : undefined}
+                              disabled={isStaticDemo}
                               onClick={() => void handleConnect(provider)}
                             >
-                              Connect
+                              {isStaticDemo ? "Static Demo" : "Connect"}
                             </CButton>
                             {provider.id === "intune" && providerIsConnected ? (
                               <CButton
                                 size="sm"
                                 color="primary"
                                 className="ms-2"
-                                disabled={importIntuneDevicesMutation.isPending}
+                                disabled={isStaticDemo || importIntuneDevicesMutation.isPending}
                                 onClick={() => handleImportDevices(provider.id)}
                               >
-                                {importIntuneDevicesMutation.isPending ? "Importing..." : "Import Devices"}
+                                {isStaticDemo ? "Import Disabled" : importIntuneDevicesMutation.isPending ? "Importing..." : "Import Devices"}
                               </CButton>
                             ) : null}
                           </td>

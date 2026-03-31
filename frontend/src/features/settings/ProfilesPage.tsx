@@ -4,9 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useDevModeUrlState } from "../../lib/devMode";
 import { formatDateTime } from "../../lib/formatters";
+import { isHostedStaticDemoMode } from "../../lib/runtimeMode";
 import { NEW_PROFILE_ROUTE_ID, useAccessControlState } from "./accessControlShared";
 
 export function ProfilesPage() {
+  const isStaticDemo = isHostedStaticDemoMode();
   const navigate = useNavigate();
   const { withDevMode } = useDevModeUrlState();
   const accessControlQuery = useAccessControlState();
@@ -15,7 +17,9 @@ export function ProfilesPage() {
   return (
     <div className="d-grid gap-4">
       <CAlert color="info" className="mb-0">
-        Profiles are reusable access templates. Open a profile to manage its permissions and the users assigned to it.
+        {isStaticDemo
+          ? "Hosted Vercel access is read-only. Profiles shown here come from static demo data."
+          : "Profiles are reusable access templates. Open a profile to manage its permissions and the users assigned to it."}
       </CAlert>
 
       {accessControlQuery.isLoading ? (
@@ -38,7 +42,7 @@ export function ProfilesPage() {
             </div>
             <div className="d-flex flex-wrap gap-2">
               <CBadge color="secondary">{profiles.length} records</CBadge>
-              <CButton color="primary" onClick={() => navigate(withDevMode(`/settings/profiles/${NEW_PROFILE_ROUTE_ID}`))}>
+              <CButton color="primary" disabled={isStaticDemo} onClick={() => navigate(withDevMode(`/settings/profiles/${NEW_PROFILE_ROUTE_ID}`))}>
                 New Profile
               </CButton>
             </div>

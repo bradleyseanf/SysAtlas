@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 import { api } from "../../lib/api";
+import { isHostedStaticDemoMode } from "../../lib/runtimeMode";
 import type { AuthResponse, AuthUser } from "../../types/api";
 
 type AuthSession = {
@@ -36,6 +37,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let isActive = true;
 
     async function restoreSession() {
+      if (isHostedStaticDemoMode()) {
+        const response = await api.getCurrentSession();
+        if (isActive) {
+          setSession({ user: response.user });
+          setIsReady(true);
+        }
+        return;
+      }
+
       try {
         const response = await api.getCurrentSession();
         if (isActive) {
@@ -72,7 +82,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await api.logout();
     } finally {
-      setSession(null);
+      if (!isHostedStaticDemoMode()) {
+        setSession(null);
+      }
       setIsReady(true);
     }
   }

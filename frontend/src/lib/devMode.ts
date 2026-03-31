@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { isHostedStaticDemoMode } from "./runtimeMode";
 
 export const DEV_MODE_QUERY_PARAM = "dev_mode";
 
@@ -15,14 +16,17 @@ export function readDevModeQueryValue(search: string) {
 }
 
 export function isDevModeEnabled(search: string) {
-  return readDevModeQueryValue(search) === "true";
+  return isHostedStaticDemoMode() || readDevModeQueryValue(search) === "true";
 }
 
 export function withDevModeSearch(path: string, search: string) {
   const url = new URL(path, "http://sysatlas.local");
+  const forcedDevMode = isHostedStaticDemoMode();
   const devModeValue = readDevModeQueryValue(search);
 
-  if (devModeValue) {
+  if (forcedDevMode) {
+    url.searchParams.set(DEV_MODE_QUERY_PARAM, "true");
+  } else if (devModeValue) {
     url.searchParams.set(DEV_MODE_QUERY_PARAM, devModeValue);
   } else {
     url.searchParams.delete(DEV_MODE_QUERY_PARAM);
@@ -34,10 +38,15 @@ export function withDevModeSearch(path: string, search: string) {
 export function useDevModeUrlState() {
   const location = useLocation();
   const navigate = useNavigate();
+  const isForcedDevMode = isHostedStaticDemoMode();
   const devModeQueryValue = readDevModeQueryValue(location.search);
-  const isDevMode = devModeQueryValue === "true";
+  const isDevMode = isForcedDevMode || devModeQueryValue === "true";
 
   function setDevMode(enabled: boolean) {
+    if (isForcedDevMode) {
+      return;
+    }
+
     const nextSearchParams = new URLSearchParams(location.search);
     nextSearchParams.set(DEV_MODE_QUERY_PARAM, enabled ? "true" : "false");
 
@@ -58,6 +67,7 @@ export function useDevModeUrlState() {
   return {
     devModeQueryValue,
     isDevMode,
+    isForcedDevMode,
     setDevMode,
     withDevMode,
   };

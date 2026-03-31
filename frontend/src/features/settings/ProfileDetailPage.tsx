@@ -25,10 +25,12 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { formatDateTime } from "../../lib/formatters";
 import { useDevModeUrlState } from "../../lib/devMode";
 import { api } from "../../lib/api";
+import { isHostedStaticDemoMode } from "../../lib/runtimeMode";
 import { useAuth } from "../auth/AuthContext";
 import { accessControlQueryKey, buildProfileForm, NEW_PROFILE_ROUTE_ID, useAccessControlState } from "./accessControlShared";
 
 export function ProfileDetailPage() {
+  const isStaticDemo = isHostedStaticDemoMode();
   const { profileId = "" } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -188,13 +190,13 @@ export function ProfileDetailPage() {
         </CButton>
         {!isLockedProfile ? (
           <div className="d-flex flex-wrap gap-2">
-            <CButton color="secondary" variant="outline" onClick={() => setIsEditorVisible(true)}>
+            <CButton color="secondary" variant="outline" disabled={isStaticDemo} onClick={() => setIsEditorVisible(true)}>
               {formState.id ? "Edit Details" : "Set Details"}
             </CButton>
             <CButton
               color="primary"
               onClick={() => handleSaveProfile()}
-              disabled={saveProfileMutation.isPending || !formState.name.trim() || formState.permissions.length === 0}
+              disabled={isStaticDemo || saveProfileMutation.isPending || !formState.name.trim() || formState.permissions.length === 0}
             >
               {saveProfileMutation.isPending ? "Saving Profile..." : formState.id ? "Save Profile" : "Create Profile"}
             </CButton>
@@ -205,6 +207,10 @@ export function ProfileDetailPage() {
       {notice ? (
         <CAlert color={noticeTone} className="mb-0">
           {notice}
+        </CAlert>
+      ) : isStaticDemo ? (
+        <CAlert color="info" className="mb-0">
+          Hosted Vercel access is read-only. Profile edits are disabled in static demo mode.
         </CAlert>
       ) : null}
 
@@ -290,6 +296,7 @@ export function ProfileDetailPage() {
                           <CButton
                             color={isEnabled ? "primary" : "secondary"}
                             variant={isEnabled ? undefined : "outline"}
+                            disabled={isStaticDemo}
                             onClick={() => togglePermission(permission.key, true)}
                           >
                             On
@@ -297,6 +304,7 @@ export function ProfileDetailPage() {
                           <CButton
                             color={!isEnabled ? "dark" : "secondary"}
                             variant={!isEnabled ? undefined : "outline"}
+                            disabled={isStaticDemo}
                             onClick={() => togglePermission(permission.key, false)}
                           >
                             Off
@@ -312,7 +320,7 @@ export function ProfileDetailPage() {
         </CCardBody>
       </CCard>
 
-      <CModal alignment="center" visible={isEditorVisible} onClose={handleCloseEditor}>
+      <CModal alignment="center" visible={isEditorVisible && !isStaticDemo} onClose={handleCloseEditor}>
         <form onSubmit={handleSaveProfile}>
           <CModalHeader>
             <CModalTitle>{formState.id ? "Edit Profile Details" : "Create Profile"}</CModalTitle>

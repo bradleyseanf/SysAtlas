@@ -4,9 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useDevModeUrlState } from "../../lib/devMode";
 import { formatDateTime } from "../../lib/formatters";
+import { isHostedStaticDemoMode } from "../../lib/runtimeMode";
 import { NEW_USER_ROUTE_ID, useAccessControlState } from "./accessControlShared";
 
 export function AccessUsersPage() {
+  const isStaticDemo = isHostedStaticDemoMode();
   const navigate = useNavigate();
   const { withDevMode } = useDevModeUrlState();
   const accessControlQuery = useAccessControlState();
@@ -15,7 +17,9 @@ export function AccessUsersPage() {
   return (
     <div className="d-grid gap-4">
       <CAlert color="info" className="mb-0">
-        These users are SysAtlas access accounts. Open a user to review their profile assignment and edit their sign-in details.
+        {isStaticDemo
+          ? "Hosted Vercel access is read-only. Access users shown here come from static demo data."
+          : "These users are SysAtlas access accounts. Open a user to review their profile assignment and edit their sign-in details."}
       </CAlert>
 
       {accessControlQuery.isLoading ? (
@@ -38,7 +42,7 @@ export function AccessUsersPage() {
             </div>
             <div className="d-flex flex-wrap gap-2">
               <CBadge color="secondary">{users.length} records</CBadge>
-              <CButton color="primary" onClick={() => navigate(withDevMode(`/settings/users/${NEW_USER_ROUTE_ID}`))}>
+              <CButton color="primary" disabled={isStaticDemo} onClick={() => navigate(withDevMode(`/settings/users/${NEW_USER_ROUTE_ID}`))}>
                 New User
               </CButton>
             </div>

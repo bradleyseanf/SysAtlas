@@ -82,7 +82,7 @@ function colorModeIcon(mode: string) {
 export function AppShell() {
   const location = useLocation();
   const { session, signOut } = useAuth();
-  const { isDevMode, setDevMode, withDevMode } = useDevModeUrlState();
+  const { isDevMode, isForcedDevMode, setDevMode, withDevMode } = useDevModeUrlState();
   const { colorMode, setColorMode } = useColorModes("sysatlas-color-mode");
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [isSidebarNarrow, setIsSidebarNarrow] = useState(false);
@@ -184,10 +184,11 @@ export function AppShell() {
             <CHeaderNav className="ms-auto align-items-center">
               {canManageSettings ? (
                 <li className="nav-item d-none d-lg-flex align-items-center gap-2 me-3">
-                  <span className="small text-body-secondary">Test mode</span>
+                  <span className="small text-body-secondary">{isForcedDevMode ? "Static demo" : "Test mode"}</span>
                   <CFormSwitch
                     id="dev-mode-switch"
                     checked={isDevMode}
+                    disabled={isForcedDevMode}
                     onChange={(event) => setDevMode(event.target.checked)}
                   />
                 </li>
@@ -238,7 +239,7 @@ export function AppShell() {
                       <CBadge color={session.user.is_active ? "success" : "danger"}>
                         {session.user.is_active ? "Active" : "Disabled"}
                       </CBadge>
-                      {isDevMode ? <CBadge color="warning">Test Mode</CBadge> : null}
+                      {isForcedDevMode ? <CBadge color="warning">Static Demo</CBadge> : isDevMode ? <CBadge color="warning">Test Mode</CBadge> : null}
                     </div>
                   </div>
                   {canManageSettings ? (
@@ -248,9 +249,9 @@ export function AppShell() {
                     </CDropdownItem>
                   ) : null}
                   {canManageSettings ? (
-                    <CDropdownItem as="button" type="button" onClick={() => setDevMode(!isDevMode)} className="d-lg-none">
+                    <CDropdownItem as="button" type="button" onClick={() => setDevMode(!isDevMode)} className="d-lg-none" disabled={isForcedDevMode}>
                       <CIcon className="me-2" icon={cilApplicationsSettings} />
-                      {isDevMode ? "Disable" : "Enable"} test mode
+                      {isForcedDevMode ? "Static demo enabled" : `${isDevMode ? "Disable" : "Enable"} test mode`}
                     </CDropdownItem>
                   ) : null}
                   <CDropdownDivider />
