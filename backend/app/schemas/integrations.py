@@ -94,6 +94,13 @@ class IntegrationConnectionMutationResponse(BaseModel):
     item: IntegrationConnectionResponse
 
 
+class IntegrationImportResponse(BaseModel):
+    message: str
+    imported_count: int
+    updated_count: int
+    total_count: int
+
+
 class IntegrationOauthConfigResponse(BaseModel):
     provider: str
     configured: bool

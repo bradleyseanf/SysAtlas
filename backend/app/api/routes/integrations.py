@@ -4,6 +4,9 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import require_permission
 from app.db.session import get_db
+from app.integrations.intune.oauth import begin_oauth_flow as begin_intune_oauth_flow
+from app.integrations.intune.oauth import complete_oauth_flow as complete_intune_oauth_flow
+from app.integrations.intune.oauth import import_devices_from_connection as import_intune_devices_from_connection
 from app.integrations.zoho.oauth import begin_oauth_flow as begin_zoho_oauth_flow
 from app.integrations.zoho.oauth import complete_oauth_flow as complete_zoho_oauth_flow
 from app.integrations.zoho.oauth import get_oauth_config as get_zoho_oauth_config
@@ -15,6 +18,7 @@ from app.schemas.integrations import (
     IntegrationOauthConfigUpsertRequest,
     IntegrationConnectionMutationResponse,
     IntegrationConnectionUpsertRequest,
+    IntegrationImportResponse,
     IntegrationListResponse,
 )
 from app.services.integrations import catalog_response, list_connections, upsert_connection
@@ -86,6 +90,12 @@ def start_provider_oauth(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("settings.integrations.manage")),
 ) -> Response:
+    if provider == "intune":
+        return begin_intune_oauth_flow(
+            frontend_origin=frontend_origin,
+            current_user=current_user,
+        )
+
     if provider != "zoho":
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -111,6 +121,15 @@ def complete_provider_oauth(
     accounts_server: str | None = Query(default=None, alias="accounts-server"),
     db: Session = Depends(get_db),
 ) -> HTMLResponse:
+    if provider == "intune":
+        return complete_intune_oauth_flow(
+            db=db,
+            state=state,
+            code=code,
+            error=error,
+            error_description=error_description,
+        )
+
     if provider != "zoho":
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -125,4 +144,25 @@ def complete_provider_oauth(
         error=error,
         error_description=error_description,
         accounts_server=accounts_server,
+    )
+
+
+@router.post("/{provider}/import/devices", response_model=IntegrationImportResponse)
+def import_provider_devices(
+    provider: str,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission("settings.integrations.manage")),
+) -> IntegrationImportResponse:
+    if provider != "intune":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Device import is not implemented for this integration yet.",
+        )
+
+    result = import_intune_devices_from_connection(db=db)
+    return IntegrationImportResponse(
+        message=f"Imported {result.imported_count + result.updated_count} Intune devices into SysAtlas.",
+        imported_count=result.imported_count,
+        updated_count=result.updated_count,
+        total_count=result.total_count,
     )

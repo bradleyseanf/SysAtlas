@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     database_url: str = f"sqlite+pysqlite:///{DEFAULT_SQLITE_PATH}"
     app_secret_key: SecretStr | None = Field(default=None, validation_alias="APP_SECRET_KEY")
     integration_encryption_key: SecretStr | None = Field(default=None, validation_alias="INTEGRATION_ENCRYPTION_KEY")
+    intune_client_id: str | None = Field(default=None, validation_alias="INTUNE_CLIENT_ID")
+    intune_redirect_uri: str | None = Field(default=None, validation_alias="INTUNE_REDIRECT_URI")
+    intune_oauth_tenant: str = Field(default="common", validation_alias="INTUNE_OAUTH_TENANT")
     zoho_client_id: str | None = Field(default=None, validation_alias="ZOHO_CLIENT_ID")
     zoho_client_secret: SecretStr | None = Field(default=None, validation_alias="ZOHO_CLIENT_SECRET")
     zoho_accounts_server: str = Field(default="https://accounts.zoho.com", validation_alias="ZOHO_ACCOUNTS_SERVER")
@@ -107,7 +110,7 @@ class Settings(BaseSettings):
         normalized = str(value).strip()
         return normalized or None
 
-    @field_validator("zoho_client_id", "zoho_redirect_uri", mode="before")
+    @field_validator("intune_client_id", "intune_redirect_uri", "zoho_client_id", "zoho_redirect_uri", mode="before")
     @classmethod
     def normalize_optional_string(cls, value: object) -> str | None:
         if value is None:
@@ -115,6 +118,14 @@ class Settings(BaseSettings):
 
         normalized = str(value).strip()
         return normalized or None
+
+    @field_validator("intune_oauth_tenant", mode="before")
+    @classmethod
+    def normalize_intune_oauth_tenant(cls, value: object) -> str:
+        normalized = str(value).strip()
+        if not normalized:
+            raise ValueError("INTUNE_OAUTH_TENANT cannot be empty.")
+        return normalized
 
     @field_validator("zoho_accounts_server", mode="before")
     @classmethod
