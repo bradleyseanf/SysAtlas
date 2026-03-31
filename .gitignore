@@ -10,6 +10,7 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+*.egg-info/
 build/
 .pytest_cache/
 .mypy_cache/
